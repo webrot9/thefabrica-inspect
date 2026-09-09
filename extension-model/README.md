@@ -10,9 +10,10 @@ system. It is deliberately boring, and the boringness is the feature.
 ## Where buyer code goes
 
 Product code the buyer writes lives in reserved `_domain/`
-directories that exist throughout the tree — under models, routers,
-schemas, repositories, services, workers, prompts, scrapers, seed data,
-and their frontend equivalents. Factory code lives outside those paths.
+directories that exist throughout the tree. There are nine of them:
+under models, routers, services, worker tasks, prompts, scrapers and
+seed data on the backend, and two on the frontend — components, and a
+dashboard route group. Factory code lives outside those paths.
 
 The property the shipped code actually gives you:
 

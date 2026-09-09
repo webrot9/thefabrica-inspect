@@ -27,9 +27,33 @@ What it does contain is chosen so that the claims are **falsifiable**:
 enough real code and real reasoning to disagree with, rather than a
 feature list.
 
+## Built to work with coding agents
+
+A licensed repository ships the instruction file each coding agent
+already looks for: `CLAUDE.md` for Claude Code, `AGENTS.md` for Codex
+and other agents following that convention, `.cursor/rules/fabrica.mdc`
+for Cursor. The two short ones instruct the agent to read and follow
+`CLAUDE.md`, so there is one canonical set of instructions rather than
+three that drift.
+
+That canonical file carries the architecture and where things live; the
+`_domain/` extension boundary; the production invariants that are
+expensive to get wrong — the append-only credit ledger, webhook
+idempotency, ownership filtering in the repository layer; the
+verification commands and the expectation that generating code is not
+finishing the task; and the procedure for taking an upstream update.
+
+The point is not that an agent generates the product for you. It is
+that your agent starts from explicit production context instead of
+rediscovering those decisions from a blank repository — which is where
+a plausible-looking diff quietly gets the ownership filter or the
+ledger wrong. The audience is still the developer doing the reviewing.
+
+The mechanism is inspectable in [`agent-context/`](agent-context/).
+
 ## Reading path
 
-Four items, in this order. Each is meant to prove something specific.
+Five items, in this order. Each is meant to prove something specific.
 
 ### 1. [`examples/owned-resource/`](examples/owned-resource/)
 
@@ -75,6 +99,19 @@ are stated rather than hidden.
 described in enough detail to know what it would take to break it.
 
 *What it proves:* that the ledger claim is tested, not asserted.
+
+### 5. [`agent-context/`](agent-context/)
+
+The two pointer files in full, and labelled excerpts from the canonical
+`CLAUDE.md`, taken from release `thefabrica-v0.1.2`.
+
+*What it proves:* that the orientation above is a property of the
+repository rather than of a prompt someone remembered to paste.
+`AGENTS.md` and the Cursor rule are published whole — the only way to
+show that they instruct rather than mention, and that they stay
+pointers instead of becoming a second and third set of instructions.
+The `CLAUDE.md` excerpts show what the agent is actually handed on the
+five topics the claim rests on, with every cut marked and explained.
 
 Also here: [`TREE.md`](TREE.md), a deliberately incomplete architecture
 map, for judging whether the system is coherent as a whole.

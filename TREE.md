@@ -22,7 +22,6 @@ backend/
 │   │   │   ├── _domain/             ← buyer routers live here
 │   │   │   └── …                    email, feedback, broadcast, …
 │   │   └── schemas/
-│   │       ├── _domain/             ← buyer schemas
 │   │       └── …                    one module per resource
 │   ├── models/
 │   │   ├── user.py                  identity mirror + consent + attribution
@@ -59,8 +58,8 @@ frontend/
 ├── src/
 │   ├── app/[locale]/                locale-prefixed routing
 │   │   ├── (marketing)/             public pages, legal, pricing
-│   │   ├── (dashboard)/             authenticated app, billing, settings, admin
-│   │   └── _dashboard/_domain/      ← buyer dashboard surfaces
+│   │   └── (dashboard)/             authenticated app, billing, settings, admin
+│   │       └── (_domain)/           ← buyer dashboard surfaces (route group)
 │   ├── components/
 │   │   ├── ui/                      design-system primitives
 │   │   ├── _domain/                 ← buyer components
