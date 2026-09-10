@@ -5,9 +5,7 @@ import "nextra-theme-docs/style.css";
 
 export const metadata = {
   // The production host, so canonical and social URLs resolve against the
-  // site rather than against Next's localhost fallback. It is the one piece
-  // of deployment configuration that has to live in the repository: Vercel
-  // knows the domain, the build output does not.
+  // site rather than against Next's localhost fallback.
   metadataBase: new URL("https://docs.thefabrica.dev"),
   title: {
     default: "The Fabrica — engineering documentation",
@@ -15,8 +13,8 @@ export const metadata = {
   },
   description:
     "The engineering reasoning behind The Fabrica, a production FastAPI + " +
-    "Next.js SaaS foundation. Published from the private repository, not " +
-    "retyped from it.",
+    "Next.js SaaS foundation: the decisions, the trade-offs, and the " +
+    "receipts.",
 };
 
 const navbar = (
@@ -29,8 +27,8 @@ const navbar = (
 const footer = (
   <Footer>
     <span>
-      Every page under a section heading is generated from the private
-      repository and says which commit it came from.{" "}
+      Every page under a section heading is generated from the product
+      documentation and names the version it describes.{" "}
       <a href="https://www.thefabrica.dev/">thefabrica.dev</a>
     </span>
   </Footer>

@@ -6,9 +6,8 @@ fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica v0.1.2 by its
-     documentation exporter, which lives in the private repository.
-     Edit the source there instead. -->
+     Extracted from The Fabrica v0.1.2.
+     Edits belong in the product documentation, not here. -->
 
 # First-touch attribution
 
@@ -203,4 +202,4 @@ the factory ships no hook for it.
 
 Extracted from `docs/recipes/first-touch-utm.md`, `docs/recipes/why-utm-via-frontend.md`.
 
-That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two, which is what makes naming that version honest.

@@ -1,6 +1,6 @@
 ---
 title: "Start here"
-description: "The engineering documentation for The Fabrica, published from the private repository rather than retyped from it."
+description: "The engineering reasoning behind The Fabrica: the decisions, the trade-offs, and the receipts."
 ---
 
 # The Fabrica — engineering documentation
@@ -16,19 +16,18 @@ It exists to answer one question before you spend anything:
 
 ## How these pages are produced
 
-Every page under a section heading is **extracted from the private
-repository**, not retyped from it. Passages are marked at the source, an
-allowlist names which files may be published and where, and a tool reads
-the marked regions out of a git ref and writes this tree. Publication is a
-diff a human reads.
+Every page under a section heading is **extracted from the product's own
+documentation**, not written for this site. Passages are marked for
+publication at the source, and each extraction is reviewed before it is
+published.
 
-That matters for one reason: a hand-written public excerpt drifts. This
-repository used to carry three of them, and by the time they were retired
-one described the credit ledger more accurately than the private document
-did, and another claimed file counts that had not been true for months. An
-excerpt nobody regenerates is a claim nobody rechecks.
+That matters for one reason: a hand-written summary drifts. This site used
+to carry three of them, and by the time they were retired one described the
+credit ledger more accurately than the document it was summarising, and
+another claimed file counts that had not been true for months. A copy nobody
+regenerates is a claim nobody rechecks.
 
-So each page says which commit it came from, at the top, every time:
+Each page also names the product version it describes:
 
 ```markdown
 > Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`,
@@ -36,19 +35,18 @@ So each page says which commit it came from, at the top, every time:
 ```
 
 Product version and documentation source are separate questions, and the
-pages answer both. Documentation gets corrected after a release, so the
-Markdown here is newer than the release it describes — and naming that
-release is not taken on trust: the exporter refuses to print it unless git
-confirms the documentation commit descends from the release and that nothing
-changed the product's behaviour in between.
+pages answer both. Documentation gets corrected after a release, so the text
+here is newer than the release it describes — and the release it names is
+only named when nothing in between changed how the product behaves. The
+commit is there so a claim on this site can be tied to a specific state of
+the product later.
 
 ## What is not here
 
 The setup and deployment procedures, the compliance document set, the
 scaffold templates, the operational how-tos and the troubleshooting
-catalogue are not published. They are what a licence buys. Their absence
-is enforced by tests rather than by intention: adding one to the
-publication allowlist fails the build.
+catalogue are not published. They are what a licence buys, and their absence
+is enforced by tests rather than left to intention.
 
 Nothing here is runnable, and none of it is open source — see
 [`NOTICE.md`](https://github.com/webrot9/thefabrica-inspect/blob/main/NOTICE.md).
@@ -80,9 +78,9 @@ actually does to a repository shaped like this one.
 **Does it survive contact with reality?**
 [What executing our own guide broke](/receipts/executing-the-guide) and
 [two events, no delivery order](/receipts/paddle-delivery-order) are the
-defects found by running the thing rather than describing it.
-[Cost baseline](/operating/cost) is what the third-party stack costs and
-where this foundation does not help you.
+defects found by running the thing rather than describing it, and
+[the threat model](/operating/security) states the residual risk rather than
+stopping at the mitigations.
 
 ## An honest note on what you can verify
 

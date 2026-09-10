@@ -2,7 +2,8 @@
 
 This repository is the source of **the engineering documentation for
 [The Fabrica](https://www.thefabrica.dev/)**, a commercial FastAPI +
-Next.js SaaS foundation. It is also the site that serves it.
+Next.js SaaS foundation. It is also the site that serves it, at
+<https://docs.thefabrica.dev>.
 
 It exists to answer one question before anyone spends anything:
 
@@ -11,58 +12,42 @@ It exists to answer one question before anyone spends anything:
 
 ## Most of this repository is generated
 
-Almost every page under `content/` is **extracted from the private product
-repository**, not written here. Passages are marked at the source, an
-allowlist names which files may be published and to what route, and a tool
-reads the marked regions out of a git ref and writes this tree. Publication
-is a diff a human reads before it becomes a commit.
+Almost every page under `content/` is **extracted from the product's own
+documentation**, not written here. Passages are explicitly marked for
+publication at the source, a maintainer runs the extraction, and the result
+lands here as a pull request somebody reads before it merges.
 
-The reason is drift. This repository used to carry hand-written public
-excerpts, and by the time they were retired one of them described the
-credit ledger more accurately than the private document did, while another
-claimed file counts that had not been true for months. An excerpt nobody
-regenerates is a claim nobody rechecks.
+The reason is drift. This repository used to carry hand-written summaries of
+the product's documentation, and by the time they were retired one of them
+described the credit ledger more accurately than the document it was
+summarising, while another claimed file counts that had not been true for
+months. A copy nobody regenerates is a claim nobody rechecks.
 
 Files that say `GENERATED FILE — DO NOT EDIT` mean it. Editing one here
-produces a change that the next export silently reverts. The source is in
-the private repository; the exporter is in the private storefront
-repository. Neither of them can write to this one, and nothing here can
-read either of them:
+produces a change that the next extraction silently reverts. Each page names
+the product version it describes and the documentation commit it came from,
+so a claim on this site can be tied to a specific state of the product.
 
-| Repository | Owns |
-|---|---|
-| `thefabrica` (private) | the documentation source and the `public:` markers |
-| `thefabrica-www` (private) | the exporter and the publication allowlist |
-| **this one** (public) | the generated tree, the site, and the pages no document can carry |
+## What is written here
 
-There is no token, no GitHub App, no submodule and no workflow anywhere
-that moves content from private to public. A human runs the exporter and
-opens a pull request.
-
-## What is hand-written
-
-Two kinds of page, both of them evidence that no prose extract could
-carry, and both declared in the publication allowlist so the generated
-sidebar still lists everything:
+Four pages, because no extracted passage could carry them:
 
 - `content/index.mdx` — the front page.
-- `content/extending/opinionated-and-replaceable.mdx` — an evaluation page
-  that reads across the whole corpus and the source: which decisions are
-  load-bearing, which are defaults, and what replacing each one touches. No
-  single marked region could carry it, because it is *about* the set.
+- `content/extending/opinionated-and-replaceable.mdx` — which decisions a
+  buyer inherits, which are load-bearing, and what replacing each one
+  touches. An evaluation *across* the corpus, which no single document can
+  make about itself.
 - `content/receipts/example-resource.mdx` — the six files a scaffolded
   resource arrives as, inlined from `examples/owned-resource/` and checked
   against them on every build by `scripts/check-examples.mjs`.
-- `content/receipts/ledger-concurrency.mdx` — the concurrency test that
-  backs the credit-ledger claim, and its output.
+- `content/receipts/ledger-concurrency.mdx` — the concurrency test behind
+  the credit-ledger claim, and its output.
 
 ## What is not here
 
 The setup and deployment procedures, the compliance document set, the
 scaffold templates, the operational how-tos and the troubleshooting
-catalogue. They are what a licence buys, and their absence is enforced by
-tests in the storefront repository rather than by intention: adding one to
-the publication allowlist fails that build.
+catalogue. They are what a licence buys.
 
 Nothing here is runnable as a product, and none of it is open source. See
 [`NOTICE.md`](NOTICE.md) — the absence of a `LICENSE` file is deliberate
@@ -73,13 +58,12 @@ rather than an oversight.
 ```bash
 npm ci
 npm run build          # Next.js 15 + Nextra 4
-npm run check          # the drift guards, no network, no secrets
+npm run check          # the drift guards
 npm run dev
 ```
 
-The build reads this repository and nothing else. It holds no credential,
-makes no authenticated request, and has no dependency on a private
-repository at build time or at request time.
+The build reads this repository and nothing else. It holds no credential and
+makes no authenticated request.
 
 ---
 

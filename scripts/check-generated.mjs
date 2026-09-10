@@ -1,16 +1,16 @@
 // Generated pages must look generated, and must agree with each other.
 //
-// The export is reproducible, so the real check on whether this tree is
-// current is a diff against a fresh run of the exporter — which needs the
-// private repository and therefore happens on a maintainer's machine, not
-// here. What CI can check without any private dependency is that nothing
-// in the tree contradicts itself:
+// The extraction is reproducible, so the real check on whether this tree is
+// current is a diff against a fresh run of it — which needs the product
+// documentation and therefore happens before the pull request, not here.
+// What this repository can check on its own is that nothing in the tree
+// contradicts itself:
 //
 //   * every generated page says which commit it came from;
-//   * they all say the SAME commit, so the tree is one export rather than
-//     a mixture of two;
+//   * they all say the SAME commit, and describe the same product version,
+//     so the tree is one extraction rather than a mixture of two;
 //   * every sidebar entry resolves to a page, and every page is listed;
-//   * no page carries a `public:` marker, which would mean the extraction
+//   * no page carries a publication marker, which would mean the extraction
 //     shipped its own scaffolding.
 import { readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -96,7 +96,7 @@ if (versions.size > 1) {
 
 // --- nothing leaked the extraction scaffolding ---------------------------
 //
-// A marker ON ITS OWN LINE is what the exporter acts on, so one surviving
+// A marker ON ITS OWN LINE is what the extraction acts on, so one surviving
 // into the output means a region boundary went somewhere nobody chose. A
 // marker mentioned inside a sentence is a different thing entirely: the
 // page about how these documents are maintained has to be able to name the
