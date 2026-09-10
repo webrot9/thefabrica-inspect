@@ -1,0 +1,737 @@
+---
+title: "A scaffolded resource, in full"
+description: "The six files a new user-owned resource arrives as, and the security properties already in place."
+---
+
+# A scaffolded resource, in full
+
+Every user-owned resource in The Fabrica starts as six files copied from a
+template set and substituted: model, migration, schema, repository, router,
+tests. There is no generator command — the templates are files you copy,
+which is deliberate. A generator is a second thing to maintain, and a buyer
+who reads the template once understands what they now own.
+
+Below is the complete output for a fictional `SavedSearch` resource. It
+does not run: the factory primitives it imports are not published here. It
+is here to be read.
+
+**What it is meant to prove:** that generated code arrives with its
+security properties already in place, rather than as a shape you are
+expected to harden afterwards.
+
+## `repository.py`
+
+Start here. The ownership filter is one SQL `WHERE` clause in one place,
+and every read of this resource goes through it. `AsyncBaseRepository`
+deliberately exposes no ownership-aware read, so a router cannot reach a
+row by id without going past `get_for_user` — and a reviewer looking for
+an IDOR has one method to read rather than every endpoint.
+
+```python filename="repository.py"
+"""Async repository for SavedSearch.
+
+INSPECTION RENDERING — not runnable as-is.
+
+Generated from The Fabrica's private resource scaffold for a fictional
+`SavedSearch` resource. The factory primitive it extends
+(`AsyncBaseRepository`) is intentionally omitted from this repository:
+it is meant to be inspected, not executed.
+
+This file is the one worth reading closely. The router performs every
+database read through it, so the `WHERE user_id = ...` predicate lives
+in ONE place instead of being restated at each endpoint. Omitting that
+predicate in a single endpoint is the most common way an owned-resource
+API grows an IDOR hole; centralising it means a reviewer confirms
+ownership by reading one file rather than auditing every handler.
+
+Ownership is filtered IN SQL — not fetched and then compared in Python.
+A row belonging to another user is never loaded into the process.
+"""
+
+from __future__ import annotations
+
+import uuid
+from collections.abc import Sequence
+
+from sqlalchemy import func, select
+
+from src.models._domain.saved_search import SavedSearch
+from src.services.repositories_async.base import AsyncBaseRepository
+
+
+class SavedSearchRepository(AsyncBaseRepository[SavedSearch]):
+    """One repository, one model. Every query filters by user_id."""
+
+    model = SavedSearch
+
+    async def get_for_user(
+        self,
+        resource_id: uuid.UUID,
+        *,
+        user_id: uuid.UUID,
+    ) -> SavedSearch | None:
+        """Fetch by id WITH ownership check. Returns None for foreign rows.
+
+        This is the ONLY way the router fetches a single row. Calling
+        `session.get(SavedSearch, id)` directly would skip the ownership
+        filter — the classic IDOR slip.
+        """
+        stmt = select(SavedSearch).where(
+            SavedSearch.id == resource_id,
+            SavedSearch.user_id == user_id,
+        )
+        return (await self.session.execute(stmt)).scalar_one_or_none()
+
+    async def list_for_user(
+        self,
+        *,
+        user_id: uuid.UUID,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Sequence[SavedSearch]:
+        """List newest-first. Hits the (user_id, created_at) composite index."""
+        stmt = (
+            select(SavedSearch)
+            .where(SavedSearch.user_id == user_id)
+            .order_by(SavedSearch.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        return (await self.session.execute(stmt)).scalars().all()
+
+    async def count_for_user(self, *, user_id: uuid.UUID) -> int:
+        """Total rows for one user. Powers list pagination + tier-limit checks."""
+        stmt = (
+            select(func.count())
+            .select_from(SavedSearch)
+            .where(SavedSearch.user_id == user_id)
+        )
+        return (await self.session.execute(stmt)).scalar_one()
+```
+
+## `test_resource.py`
+
+Then this. `test_foreign_row_returns_404_not_403` is the IDOR regression
+test, and it ships with every scaffolded resource. It is the test that
+fails the moment someone re-implements a read without the ownership
+filter — and it checks the write paths too, not only the read.
+
+```python filename="test_resource.py"
+"""Integration tests for the SavedSearch CRUD endpoints.
+
+INSPECTION RENDERING — not runnable as-is.
+
+Generated from The Fabrica's private resource scaffold for a fictional
+`SavedSearch` resource. The fixtures these tests consume
+(`authed_client`, `other_user_client`, `anon_client`) live in the
+private conftest and are intentionally omitted from this repository:
+it is meant to be inspected, not executed.
+
+These are the security regression tests the scaffold generates, kept
+here deliberately — they are the point of the example. Three of them
+are mandatory in the private repo and are not allowed to be deleted:
+
+    1. Happy path: proves the endpoint works at all.
+    2. Foreign row -> 404: proves the ownership filter holds. IDOR is
+       the dominant bug class for owned-by-user resources; this test
+       fails noisily the moment someone drops the user_id filter.
+    3. Anonymous -> 401: proves the authentication dependency is wired.
+
+A generated CRUD endpoint is easy. A generated CRUD endpoint that
+arrives with its own IDOR regression test is the part worth inspecting.
+"""
+
+from __future__ import annotations
+
+import uuid
+
+import pytest
+from httpx import AsyncClient
+
+pytestmark = pytest.mark.integration
+
+
+SAMPLE_PAYLOAD = {
+    "name": "Remote Python roles",
+    "query": "python remote",
+    "filters": {"seniority": "senior"},
+}
+
+
+async def test_create_then_fetch_happy_path(authed_client: AsyncClient) -> None:
+    """POST returns 201 + GET by id returns the same row."""
+    resp = await authed_client.post(
+        "/api/v1/saved_searches",
+        json=SAMPLE_PAYLOAD,
+    )
+    assert resp.status_code == 201, resp.text
+    created = resp.json()
+    resource_id = created["id"]
+
+    fetched = await authed_client.get(
+        f"/api/v1/saved_searches/{resource_id}",
+    )
+    assert fetched.status_code == 200
+    assert fetched.json()["id"] == resource_id
+
+
+async def test_foreign_row_returns_404_not_403(
+    authed_client: AsyncClient,
+    other_user_client: AsyncClient,
+) -> None:
+    """Another user's row must look like it doesn't exist.
+
+    REGRESSION GUARD: this is the IDOR test. If someone removes the
+    user_id filter in the repository, this test fails immediately
+    because the request would return 200 instead of 404.
+
+    404 rather than 403 is deliberate: 403 confirms the id exists,
+    which is itself a disclosure.
+    """
+    create_resp = await other_user_client.post(
+        "/api/v1/saved_searches",
+        json=SAMPLE_PAYLOAD,
+    )
+    foreign_id = create_resp.json()["id"]
+
+    get_resp = await authed_client.get(
+        f"/api/v1/saved_searches/{foreign_id}",
+    )
+    assert get_resp.status_code == 404, (
+        f"IDOR REGRESSION: user got status {get_resp.status_code} "
+        f"for foreign row {foreign_id}. Must be 404 (not 403 — don't "
+        f"leak existence)."
+    )
+
+    # Same posture for PATCH + DELETE — a write path that skipped the
+    # ownership filter would be worse than a leaky read path.
+    patch_resp = await authed_client.patch(
+        f"/api/v1/saved_searches/{foreign_id}",
+        json=SAMPLE_PAYLOAD,
+    )
+    assert patch_resp.status_code == 404
+
+    del_resp = await authed_client.delete(
+        f"/api/v1/saved_searches/{foreign_id}",
+    )
+    assert del_resp.status_code == 404
+
+
+async def test_anonymous_request_returns_401(
+    anon_client: AsyncClient,
+) -> None:
+    """No JWT -> 401 from the authentication dependency."""
+    resp = await anon_client.get("/api/v1/saved_searches")
+    assert resp.status_code == 401
+
+
+async def test_list_returns_only_my_rows(
+    authed_client: AsyncClient,
+    other_user_client: AsyncClient,
+) -> None:
+    """The list endpoint filters by user_id even with no explicit filter."""
+    # Other user has 1 row.
+    await other_user_client.post(
+        "/api/v1/saved_searches",
+        json=SAMPLE_PAYLOAD,
+    )
+    # I have 0 rows.
+    resp = await authed_client.get("/api/v1/saved_searches")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 0
+    assert body["items"] == []
+
+
+async def test_get_nonexistent_returns_404(
+    authed_client: AsyncClient,
+) -> None:
+    """Random UUID -> 404, not 500."""
+    resp = await authed_client.get(
+        f"/api/v1/saved_searches/{uuid.uuid4()}",
+    )
+    assert resp.status_code == 404
+```
+
+## `model.py`
+
+The user foreign key cascades on delete, because erasure is a real code
+path rather than a policy document. The `(user_id, created_at)` composite
+index exists because listing "my rows, newest first" is the query that
+will actually run.
+
+```python filename="model.py"
+"""SavedSearch — owned-by-user resource.
+
+INSPECTION RENDERING — not runnable as-is.
+
+Generated from The Fabrica's private resource scaffold for a fictional
+`SavedSearch` resource, so the engineering contract can be read without
+publishing the scaffold itself. The factory primitives this imports
+(`Base`, `TimestampMixin`) are intentionally omitted from this
+repository: it is meant to be inspected, not executed.
+
+Two invariants the scaffold refuses to generate without:
+
+    - CASCADE on user delete (GDPR Art. 17 right-to-erasure).
+    - `(user_id, created_at)` composite index — every "my rows,
+      newest-first" list query hits this index rather than sorting
+      the user's whole partition.
+"""
+
+from __future__ import annotations
+
+import uuid
+
+import sqlalchemy as sa
+from sqlalchemy import ForeignKey, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column
+
+from src.db.base import Base, TimestampMixin
+
+
+class SavedSearch(Base, TimestampMixin):
+    """A search a user has saved for reuse.
+
+    Conventions inherited from the factory:
+        - CASCADE on user delete (GDPR Art. 17 right-to-erasure).
+        - `(user_id, created_at)` composite index.
+        - TimestampMixin gives created_at + updated_at automatically.
+    """
+
+    __tablename__ = "saved_searches"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="Owner. CASCADE so this row disappears on GDPR delete.",
+    )
+
+    # === BEGIN FIELDS_BLOCK ====================================================
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    query: Mapped[str] = mapped_column(Text, nullable=False)
+    filters: Mapped[dict[str, object]] = mapped_column(
+        JSONB,
+        nullable=False,
+        server_default=sa.text("'{}'::jsonb"),
+    )
+    # === END FIELDS_BLOCK ======================================================
+
+    __table_args__ = (
+        Index(
+            "ix_saved_searches_user_id_created_at",
+            "user_id",
+            "created_at",
+        ),
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover - debug aid
+        return f"<SavedSearch id={self.id} user={self.user_id}>"
+```
+
+## `schema.py`
+
+Request and response shapes are separate from the ORM model, so the
+client-facing contract can diverge from the table without either one
+dragging the other along.
+
+```python filename="schema.py"
+"""Pydantic schemas for the SavedSearch router.
+
+INSPECTION RENDERING — not runnable as-is.
+
+Generated from The Fabrica's private resource scaffold for a fictional
+`SavedSearch` resource. Surrounding factory primitives are intentionally
+omitted from this repository: it is meant to be inspected, not executed.
+
+Note the split between what a client may SET and what the API RETURNS.
+`user_id` appears only on the response model — a client never supplies
+ownership, the router takes it from the authenticated principal.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class SavedSearchCreate(BaseModel):
+    """Body for POST /api/v1/saved_searches."""
+
+    name: str = Field(..., max_length=200)
+    query: str
+    # `default_factory`, never `default={}` — a shared mutable default
+    # would be aliased across every request that omits the field.
+    filters: dict[str, Any] = Field(default_factory=dict)
+
+
+class SavedSearchUpdate(BaseModel):
+    """Body for PATCH /api/v1/saved_searches/{id}. All fields optional."""
+
+    name: str | None = Field(default=None, max_length=200)
+    query: str | None = Field(default=None)
+    filters: dict[str, Any] | None = Field(default=None)
+
+
+class SavedSearchResponse(BaseModel):
+    """One SavedSearch row in GET / list responses."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    name: str
+    query: str
+    filters: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
+
+
+class SavedSearchList(BaseModel):
+    """Paginated list response."""
+
+    items: list[SavedSearchResponse]
+    total: int
+    page: int
+    page_size: int
+```
+
+## `router.py`
+
+Every read goes through the repository — there is no `session.get()` path
+to a row. Every state change writes an `AuditLog` row. A row owned by
+someone else answers **404**, not 403, on read, update and delete alike:
+403 confirms the row exists, which is what an enumeration attack is
+trying to learn.
+
+```python filename="router.py"
+"""SavedSearch router — full CRUD owned by the current user.
+
+INSPECTION RENDERING — not runnable as-is.
+
+Generated from The Fabrica's private resource scaffold for a fictional
+`SavedSearch` resource. The factory primitives it imports
+(`CurrentUserDep`, `DBDep`, `NotFoundError`, `log_action_async`) are
+intentionally omitted from this repository: it is meant to be inspected,
+not executed.
+
+Endpoints:
+    POST   /api/v1/saved_searches          — create
+    GET    /api/v1/saved_searches          — list (paginated, newest first)
+    GET    /api/v1/saved_searches/{id}     — detail
+    PATCH  /api/v1/saved_searches/{id}     — partial update
+    DELETE /api/v1/saved_searches/{id}     — delete
+
+Invariants this shape enforces:
+
+    1. Every read goes through `SavedSearchRepository.{get,list}_for_user`,
+       so ownership is filtered in SQL rather than checked after loading.
+       There is no unscoped `session.get()` path to a row.
+    2. Every state change writes an AuditLog row.
+    3. AuditLog details NEVER contain user-supplied fields verbatim
+       (avoids log injection and PII leakage). What is recorded is a
+       curated set of "what changed" keys, not the request body.
+    4. A row belonging to another user answers 404, never 403 — a 403
+       would confirm that the id exists.
+"""
+
+from __future__ import annotations
+
+import logging
+import uuid
+
+from fastapi import APIRouter, status
+
+from src.api.deps import CurrentUserDep, DBDep
+from src.api.exceptions import NotFoundError
+from src.api.schemas._domain.saved_search import (
+    SavedSearchCreate,
+    SavedSearchList,
+    SavedSearchResponse,
+    SavedSearchUpdate,
+)
+from src.models._domain.saved_search import SavedSearch
+from src.services.audit import log_action_async
+from src.services.repositories_async._domain.saved_search import (
+    SavedSearchRepository,
+)
+
+log = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/saved_searches", tags=["saved_searches"])
+
+
+@router.post(
+    "",
+    response_model=SavedSearchResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_saved_search(
+    body: SavedSearchCreate,
+    user: CurrentUserDep,
+    db: DBDep,
+) -> SavedSearchResponse:
+    """Create a new SavedSearch owned by the current user.
+
+    Ownership comes from the authenticated principal, never from the
+    request body — `SavedSearchCreate` has no `user_id` field to spoof.
+    """
+    row = SavedSearch(
+        user_id=user.id,
+        **body.model_dump(),
+    )
+    db.add(row)
+    await db.flush()
+    await log_action_async(
+        db,
+        actor=f"user:{user.clerk_user_id}",
+        action="saved_search.created",
+        user_id=user.clerk_user_id,
+        resource_type="saved_search",
+        resource_id=str(row.id),
+        # Audit details are a curated allowlist — never the full body.
+        details={"created_via": "api"},
+    )
+    return SavedSearchResponse.model_validate(row)
+
+
+@router.get("", response_model=SavedSearchList)
+async def list_saved_searches(
+    user: CurrentUserDep,
+    db: DBDep,
+    page: int = 1,
+    page_size: int = 50,
+) -> SavedSearchList:
+    """List the current user's SavedSearch rows, newest first.
+
+    There is no "all rows" code path: the repository method takes
+    `user_id` as a required keyword argument.
+    """
+    if page < 1:
+        page = 1
+    if page_size < 1 or page_size > 200:
+        page_size = 50
+    repo = SavedSearchRepository(db)
+    rows = await repo.list_for_user(
+        user_id=user.id,
+        limit=page_size,
+        offset=(page - 1) * page_size,
+    )
+    total = await repo.count_for_user(user_id=user.id)
+    return SavedSearchList(
+        items=[SavedSearchResponse.model_validate(r) for r in rows],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
+
+
+@router.get("/{resource_id}", response_model=SavedSearchResponse)
+async def get_saved_search(
+    resource_id: uuid.UUID,
+    user: CurrentUserDep,
+    db: DBDep,
+) -> SavedSearchResponse:
+    """Detail view. 404 for foreign rows — never 403 (don't leak existence)."""
+    repo = SavedSearchRepository(db)
+    row = await repo.get_for_user(resource_id, user_id=user.id)
+    if row is None:
+        raise NotFoundError(f"SavedSearch {resource_id} not found")
+    return SavedSearchResponse.model_validate(row)
+
+
+@router.patch("/{resource_id}", response_model=SavedSearchResponse)
+async def update_saved_search(
+    resource_id: uuid.UUID,
+    body: SavedSearchUpdate,
+    user: CurrentUserDep,
+    db: DBDep,
+) -> SavedSearchResponse:
+    """Partial update. Only fields set on the request body are touched."""
+    repo = SavedSearchRepository(db)
+    row = await repo.get_for_user(resource_id, user_id=user.id)
+    if row is None:
+        raise NotFoundError(f"SavedSearch {resource_id} not found")
+
+    patch = body.model_dump(exclude_unset=True)
+    for k, v in patch.items():
+        setattr(row, k, v)
+    await db.flush()
+
+    await log_action_async(
+        db,
+        actor=f"user:{user.clerk_user_id}",
+        action="saved_search.updated",
+        user_id=user.clerk_user_id,
+        resource_type="saved_search",
+        resource_id=str(row.id),
+        # Field NAMES, not values: an audit trail that records what
+        # changed without copying user content into the log.
+        details={"fields_changed": sorted(patch.keys())},
+    )
+    return SavedSearchResponse.model_validate(row)
+
+
+@router.delete(
+    "/{resource_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_saved_search(
+    resource_id: uuid.UUID,
+    user: CurrentUserDep,
+    db: DBDep,
+) -> None:
+    """Delete one row. 404 for foreign rows."""
+    repo = SavedSearchRepository(db)
+    row = await repo.get_for_user(resource_id, user_id=user.id)
+    if row is None:
+        raise NotFoundError(f"SavedSearch {resource_id} not found")
+    await db.delete(row)
+    await log_action_async(
+        db,
+        actor=f"user:{user.clerk_user_id}",
+        action="saved_search.deleted",
+        user_id=user.clerk_user_id,
+        resource_type="saved_search",
+        resource_id=str(resource_id),
+        details={},
+    )
+```
+
+## `migration.py`
+
+One migration per change, with a `downgrade()` that works and drops what
+the upgrade created. Indexes and constraints are named explicitly rather
+than left to defaults, which is what keeps a downgrade portable between
+machines.
+
+```python filename="migration.py"
+"""Add saved_searches table.
+
+INSPECTION RENDERING — not runnable as-is.
+
+Generated from The Fabrica's private resource scaffold for a fictional
+`SavedSearch` resource.
+
+REDACTION NOTE: the revision identifiers below (`revision` /
+`down_revision`) have been NORMALISED for this inspection copy. In the
+private repository they chain onto the real migration head; publishing
+that identifier would leak the private migration graph. Only the
+revision metadata was changed — the substantive schema (columns, types,
+constraints, indexes, and the downgrade path) is exactly what the
+scaffold produces.
+
+Note what the migration guarantees at the DATABASE level, not merely in
+the ORM: the CASCADE lives in the foreign key itself, so a user delete
+removes these rows even if it is issued by a script that never loads
+the SQLAlchemy model.
+
+Revision ID: 0001_saved_searches
+Revises: 0000_inspection_base
+Create Date: normalised for inspection
+
+"""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+import sqlalchemy as sa
+from alembic import op
+from sqlalchemy.dialects import postgresql
+
+# revision identifiers, used by Alembic. Normalised — see the note above.
+revision: str = "0001_saved_searches"
+down_revision: str | Sequence[str] | None = "0000_inspection_base"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+
+
+def upgrade() -> None:
+    """Create saved_searches table + composite index."""
+    op.create_table(
+        "saved_searches",
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            nullable=False,
+        ),
+        sa.Column(
+            "user_id",
+            postgresql.UUID(as_uuid=True),
+            sa.ForeignKey("users.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        # === BEGIN COLUMNS_BLOCK ===============================================
+        sa.Column("name", sa.String(200), nullable=False),
+        sa.Column("query", sa.Text, nullable=False),
+        sa.Column(
+            "filters",
+            postgresql.JSONB,
+            nullable=False,
+            server_default=sa.text("'{}'::jsonb"),
+        ),
+        # === END COLUMNS_BLOCK =================================================
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
+            nullable=False,
+        ),
+    )
+    op.create_index(
+        "ix_saved_searches_user_id",
+        "saved_searches",
+        ["user_id"],
+    )
+    op.create_index(
+        "ix_saved_searches_user_id_created_at",
+        "saved_searches",
+        ["user_id", "created_at"],
+    )
+
+
+def downgrade() -> None:
+    """Drop saved_searches + indexes.
+
+    The downgrade is written, not stubbed. The factory's CI runs
+    `alembic upgrade head` → `downgrade base` → `upgrade head` on every
+    change, so a migration that cannot be reversed fails the build.
+    """
+    op.drop_index(
+        "ix_saved_searches_user_id_created_at",
+        table_name="saved_searches",
+    )
+    op.drop_index("ix_saved_searches_user_id", table_name="saved_searches")
+    op.drop_table("saved_searches")
+```
+
+## Why this page is hand-written
+
+Almost everything else on this site is extracted from marked regions of
+the private repository. This page is not: it is real code, and code is not
+a passage of prose a document can carry. The same goes for
+[the concurrency test transcript](/receipts/ledger-concurrency).
+
+Hand-written means drift-prone, which is the failure this whole mechanism
+exists to remove. So the blocks above are checked against the files in
+`examples/owned-resource/` on every build: edit one without the other and
+CI fails.

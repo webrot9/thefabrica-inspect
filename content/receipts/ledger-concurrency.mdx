@@ -1,0 +1,104 @@
+---
+title: "The concurrency test, and its output"
+description: "The test behind the claim that two concurrent spends cannot overdraw an account, and what breaking it looks like."
+---
+
+# The concurrency test, and its output
+
+[Credits are a ledger, not a counter](/production/credits) claims that two
+requests racing on the same account cannot spend more credits than the
+account holds. This page is the evidence for that claim.
+
+It is a description of a test that exists in the private repository, not a
+copy of it. The point is that you can check the claim is tested at all,
+and check what it would take to break it.
+
+**The test:** `test_concurrent_deducts_do_not_double_spend`, in
+`backend/tests/test_credit_ledger.py`.
+
+## The invariant
+
+> Two concurrent spends against one account, in separate transactions on
+> separate connections, must not both succeed when the balance can only
+> cover one of them.
+
+Note what this is *not* testing. Retry-safety — the same unit of work
+being delivered twice — is a different property, guarded by the
+`UNIQUE (job_id, kind)` constraint and covered by its own tests. This test
+deliberately uses two **different** job ids, so the uniqueness constraint
+cannot help. It exercises the case the constraint does not cover: two
+genuinely distinct spends interleaving their balance checks.
+
+## Setup
+
+| | |
+|---|---|
+| Starting balance | 10 credits |
+| Concurrent operations | 2 spends of 7 credits each |
+| Job ids | Distinct — one freshly minted per spend |
+| Isolation | Each spend runs in its own session, on its own connection, in its own transaction |
+| Concurrency | The two spends are awaited together with `asyncio.gather`, not in sequence |
+
+The separate-connection detail is load-bearing. Two spends sharing a
+session would serialise on the session itself and the test would pass
+without proving anything. Real concurrency needs real connections, so this
+test commits for real rather than running inside the suite's usual
+per-test rollback — and deletes its user in a `finally` block, so the
+committed rows do not leak into another test's orphan scan.
+
+## What it asserts
+
+```python
+successes = sum(results)
+assert successes == 1, "both deducts succeeded — double spend"
+...
+assert balance == 3  # 10 - 7 = 3 (the failed deduct didn't deduct)
+```
+
+The losing call raises `InsufficientCreditsError`. It does not partially
+apply, and it does not leave a movement behind.
+
+## What regression this catches
+
+Remove the `FOR UPDATE` row lock taken before the balance check and the
+test fails immediately, in the way that matters:
+
+- Both transactions read a balance of 10 under READ COMMITTED, because
+  each takes its snapshot before the other commits.
+- Both find 10 ≥ 7 and insert a spend of 7.
+- The account settles at **−4**. Both callers were served; one was never
+  paid for.
+
+The assertion that fails is `successes == 1`, with both spends reporting
+success. That is a double-spend, and it is silent in production: nothing
+errors, the balance is simply wrong, and it is discovered later from a
+support ticket rather than from a log.
+
+This is the test that makes "we use a ledger" a checkable statement rather
+than a design preference.
+
+## Where it runs
+
+The backend CI job, on every push and every pull request. It is an
+integration test: it runs against a real PostgreSQL service container, not
+a mock or an in-memory substitute — a fake would not reproduce the
+isolation-level behaviour the test exists to pin down. The same job runs
+`ruff`, `mypy --strict`, a full Alembic upgrade → downgrade → upgrade
+round-trip, and a coverage floor.
+
+## Current result
+
+```text
+$ pytest backend/tests/test_credit_ledger.py::test_concurrent_deducts_do_not_double_spend -q
+.                                                                        [100%]
+1 passed in 2.73s
+```
+
+**Passing** at `1ee1bc9cb661` on `main` — the same commit every generated
+page on this site was extracted from, so the receipt and the reasoning
+describe one tree rather than two.
+
+You are reading a vendor's report of their own test result, which is worth
+exactly what you think it is worth. The test and its CI history are
+readable in full on the first day of a licence — that is the point at
+which this receipt becomes verifiable rather than merely stated.

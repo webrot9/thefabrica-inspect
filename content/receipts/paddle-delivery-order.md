@@ -1,0 +1,70 @@
+---
+title: "Two events, no delivery order"
+description: "What a real sandbox purchase showed about concurrent webhooks, and the defect it exposed."
+---
+
+<!-- GENERATED FILE — DO NOT EDIT.
+     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     documentation exporter, which lives in the private repository.
+     Edit the source there instead. -->
+
+# Two events, no delivery order
+
+> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
+> - `docs/paddle-checkout.md`
+
+> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+
+The two no-trial first purchases this guide was written from each produced
+three events. One of those runs looked like this:
+
+```
+occurred_at                 event_type                status
+2026-…T09:14:51.833881      subscription.created      delivered
+2026-…T09:14:51.833881      subscription.activated    delivered
+2026-…T09:14:52.252546      transaction.completed     delivered
+```
+
+Read that first column carefully. In both executed runs
+**`subscription.created` and `subscription.activated` carried the identical
+`occurred_at`** and were delivered concurrently — and across the two
+payments they arrived and were processed in *opposite orders*, `created`
+first on one and `activated` first on the other.
+
+Two runs are not a contract, so do not read the timestamps above as one.
+What they do establish is the part that matters: these events **can** arrive
+concurrently, and **no delivery order should be assumed**. Your own account,
+plan configuration and trial settings may produce a different sequence
+again. A handler that assumes `created` lands first is relying on something
+nobody has promised it; see
+[What this run fixed](#what-this-run-fixed).
+
+## What this run fixed
+
+Driving this against a real Paddle sandbox exposed one product defect that
+no test and no amount of reading had caught.
+
+**Concurrent first-purchase deliveries failed one of their own webhooks.**
+`_upsert_subscription_row` read the subscription by `paddle_subscription_id`
+and inserted when it found nothing. In the first executed run
+`subscription.created` and `subscription.activated` arrived concurrently, so
+both requests read "no row" before either committed, and the loser violated
+`uq_subscriptions_paddle_subscription_id`:
+
+```
+subscription.activated  failed  IntegrityError: duplicate key value violates
+                                unique constraint
+                                "uq_subscriptions_paddle_subscription_id"
+```
+
+The system converged anyway — but only because Paddle retried 20 seconds
+later. Nothing guarantees that retry once delivery attempts are exhausted,
+and until it lands the losing handler's own sync is simply not applied.
+
+The insert now runs inside a **SAVEPOINT**, so a collision costs only the
+nested transaction — not the webhook archive and idempotency rows already
+written in the same session — and the handler re-reads and falls through to
+the update path on the winner's row. The second real payment, made against
+the fixed code, processed all three events on first delivery with zero
+failures — and did so with the arrival order *reversed*, which is the case
+the original code would also have failed.

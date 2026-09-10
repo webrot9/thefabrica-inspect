@@ -1,0 +1,20 @@
+{
+  "name": "thefabrica-inspect",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The public documentation site for The Fabrica.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "check": "node scripts/check-examples.mjs && node scripts/check-generated.mjs"
+  },
+  "dependencies": {
+    "next": "15.5.25",
+    "nextra": "4.6.0",
+    "nextra-theme-docs": "4.6.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
+  }
+}
