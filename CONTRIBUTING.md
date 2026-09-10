@@ -29,6 +29,16 @@ pull request here.
 - The site itself: `app/`, `lib/`, `next.config.mjs`, `mdx-components.js`,
   `scripts/`, and this file.
 
+## The icons
+
+`app/favicon.ico`, `app/icon.png` and `app/apple-icon.png` are the
+product's brand mark — the same woven mark the storefront uses, at the
+sizes Next.js picks up by filename and writes `<link>` tags for. They are
+binaries rather than a drawing script because this is not where the mark
+is designed: it is generated from the brand palette elsewhere and copied
+here, so changing it here would put the two sites out of step. Nothing
+else in the site references them.
+
 ## What is generated at build time
 
 `npm run build` writes four things before and after `next build`, none of
