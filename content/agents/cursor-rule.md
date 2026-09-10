@@ -1,19 +1,18 @@
 ---
 title: "The Cursor rule"
 description: "The Cursor entry point, below its frontmatter."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # The Cursor rule
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `.cursor/rules/fabrica.mdc`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 **Read [`CLAUDE.md`](../agents/repository-context) at the repo root and follow
 it.** It is this repository's agent instruction file and it applies to
@@ -44,3 +43,11 @@ Two rules worth having in context before you read it:
   ownership filter lives in one place. The shared `base.py` exposes no
   ownership-aware read on purpose. A bare `session.get(Model, id)` in a
   router is an IDOR bug.
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `.cursor/rules/fabrica.mdc`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

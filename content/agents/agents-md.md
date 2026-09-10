@@ -1,19 +1,18 @@
 ---
 title: "AGENTS.md, in full"
 description: "The Codex entry point, reproduced whole."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # AGENTS.md, in full
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `AGENTS.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 **Read [`CLAUDE.md`](../agents/repository-context) now and follow it.** It is this
 repository's agent instruction file and it applies to you: treat its
@@ -34,3 +33,11 @@ must not break — including the append-only credit ledger and webhook
 idempotency — the `_domain/` extension convention that decides which
 of your files an upstream release leaves alone, and the GDPR
 compliance obligations.
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `AGENTS.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

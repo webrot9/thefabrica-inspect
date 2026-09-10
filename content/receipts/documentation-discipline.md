@@ -1,19 +1,18 @@
 ---
 title: "How these documents are maintained"
 description: "Receipts must resolve, counts are held to the filesystem, claims are guarded by tests."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # How these documents are maintained
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/README.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 ## Doc conventions (for contributors + agents)
 
@@ -39,3 +38,11 @@ description: "Receipts must resolve, counts are held to the filesystem, claims a
    count in this file, the root README and `CLAUDE.md` to
    `docs/recipes/`; a number without a guard like that goes stale
    silently, so prefer no number at all.
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `docs/README.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

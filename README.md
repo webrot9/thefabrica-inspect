@@ -46,6 +46,10 @@ carry, and both declared in the publication allowlist so the generated
 sidebar still lists everything:
 
 - `content/index.mdx` — the front page.
+- `content/extending/opinionated-and-replaceable.mdx` — an evaluation page
+  that reads across the whole corpus and the source: which decisions are
+  load-bearing, which are defaults, and what replacing each one touches. No
+  single marked region could carry it, because it is *about* the set.
 - `content/receipts/example-resource.mdx` — the six files a scaffolded
   resource arrives as, inlined from `examples/owned-resource/` and checked
   against them on every build by `scripts/check-examples.mjs`.

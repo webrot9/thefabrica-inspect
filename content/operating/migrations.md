@@ -1,19 +1,18 @@
 ---
 title: "Changing the schema safely"
 description: "Safety classes and expand-contract playbooks for production changes."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # Changing the schema safely
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/migrations/safe-migrations.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 Most database changes are safe (adding nullable columns, adding tables,
 adding indexes CONCURRENTLY). A few categories are dangerous and need
@@ -271,3 +270,11 @@ canceling statement due to lock timeout
 
 If your migration uses `op.execute("SET LOCAL statement_timeout=...")`,
 the failure is graceful and you see the error in the deploy log.
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `docs/migrations/safe-migrations.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

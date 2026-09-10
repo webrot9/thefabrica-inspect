@@ -4,4 +4,5 @@
 export default {
   "domain-boundary": "The extension boundary",
   "taking-an-update": "Taking an update",
+  "opinionated-and-replaceable": "What is opinionated, and what is replaceable",
 };

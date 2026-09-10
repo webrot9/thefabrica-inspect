@@ -1,0 +1,350 @@
+---
+title: "What is opinionated, and what is replaceable"
+description: "Which decisions you inherit when you buy The Fabrica, which are load-bearing, and what replacing each one actually touches."
+---
+
+# What is opinionated, and what is replaceable
+
+An opinionated foundation is worth buying when you want to inherit its
+decisions. It becomes friction the moment you want to replace one. So this
+page answers the question directly, before you spend anything:
+
+> Which decisions am I inheriting? Which are load-bearing? Which are
+> defaults I can change, and what does changing one actually cost?
+
+Where replacing something is invasive, this page says so. A foundation that
+looked universally flexible would be a foundation with no opinions worth
+inheriting — and you would find out which it was three months in, not here.
+
+## Three categories
+
+**Architectural invariant.** The design assumes it. Other parts are correct
+*because* of it, and replacing it means re-deriving those guarantees
+yourself. Not impossible — but you would be building a different product,
+not configuring this one.
+
+**Opinionated default.** A real decision with real depth behind it, and a
+real cost to change. Bounded work, spread across more than one file, with
+consequences to re-verify.
+
+**Isolated integration.** Behind one module. Replacing it is contained work
+with a knowable edge.
+
+## The short version
+
+| | Shipped choice | Category |
+|---|---|---|
+| Backend framework | FastAPI + async SQLAlchemy 2.0 | Architectural invariant |
+| Database | PostgreSQL 16 | Architectural invariant |
+| External identity provider | Clerk | Architectural invariant (the *assumption*); the provider is a costly default |
+| Billing / merchant of record | Paddle | Architectural invariant — and a legal one |
+| Metered usage | Append-only credit ledger | Architectural invariant |
+| Ownership model | Repository-mediated reads | Architectural invariant |
+| Account lifecycle | Soft delete, grace window, hard delete | Architectural invariant |
+| Extension boundary | `_domain/` directories | Architectural invariant |
+| Frontend framework | Next.js App Router + next-intl | Opinionated default |
+| Async work | Celery + Redis | Opinionated default |
+| Email | Resend | Isolated integration |
+| LLM provider | Anthropic or OpenAI | Isolated integration |
+| Coding-agent context | `CLAUDE.md` + two pointers | Opinionated default, genuinely cheap |
+
+The rest of this page is the detail behind each row.
+
+---
+
+## Architectural invariants
+
+### PostgreSQL
+
+Not "we use SQL". The database module says so outright: the schema uses
+JSONB, INET, `gen_random_uuid()` and partial indexes, and a buyer moving to
+another database has to replace them. Concretely, ten of the eleven models
+import from `sqlalchemy.dialects.postgresql`, and two correctness guarantees
+are Postgres semantics rather than SQL:
+
+- `SELECT … FOR UPDATE` on the owning user row is what makes the credit
+  balance check atomic — see
+  [Credits are a ledger, not a counter](/production/credits) and
+  [the concurrency test](/receipts/ledger-concurrency);
+- `INSERT … ON CONFLICT` is the webhook dedup primitive — see
+  [Webhook delivery is idempotent by construction](/production/webhook-delivery).
+
+There are also partial indexes carrying predicates (`WHERE deleted_at IS
+NULL`, and status filters on subscriptions), a GIN index with
+`jsonb_path_ops`, and retry logic keyed on Postgres SQLSTATE codes 40001 and
+40P01.
+
+**Replacing it touches:** the models, the migrations, and both guarantees.
+On a database with different locking or isolation semantics, "concurrent
+spends cannot overdraw" and "a replay is a no-op" stop being implied by the
+code. You would need to re-establish them, and the tests that currently
+prove them are written against Postgres behaviour.
+
+### An external identity provider — and Clerk in particular
+
+This row has two layers, and collapsing them would be misleading.
+
+**The assumption is architectural.** Identity lives outside the database.
+The provider's opaque user ID is the identity key, a webhook creates the
+local row, and `users.clerk_user_id` is documented as the source of truth.
+Two other tables — `workspaces` and `audit_logs` — store that ID as a
+**`String(64)`, deliberately not a foreign key**, because a `User` row may
+not exist yet when the row is written. Referential integrity there is
+enforced by the service layer, not the database.
+
+**Which provider fills that role is a default with a high replacement
+cost.** The backend imports no Clerk SDK — token verification is `PyJWT`
+with `PyJWKClient` against a JWKS URL, with the issuer checked explicitly.
+That core is portable. What is not:
+
+1. **The identity ID is in your data and in already-sent email.**
+   Unsubscribe links carry `HMAC-SHA256(secret, clerk_user_id)` and the ID
+   itself. Change the ID format and every link already in a mailbox stops
+   verifying. Change it in the database and two tables of non-FK strings
+   have to move with it, with nothing to fail loudly if a row is missed.
+2. **Account restore depends on a specific claim.** A soft-deleted account
+   auto-restores only on evidence of a sign-in *after* deletion, read from
+   the `auth_time` claim — deliberately not `iat`, which refreshes on token
+   rotation. It fails closed: a provider that does not issue `auth_time`
+   silently stops restoring accounts rather than erroring.
+3. **The issuer is derived by string surgery** on the JWKS URL. A provider
+   whose issuer is not that URL minus its well-known suffix fails issuer
+   validation.
+4. **Erasure calls the provider.** The hard-delete worker deletes the
+   identity as well as the row, because erasure is not complete while the
+   provider still holds the email — see the
+   [GDPR coverage map](/operating/gdpr-coverage). A replacement has to offer
+   the same, or Article 17 coverage lapses.
+
+The frontend is committed too: the sign-in and sign-up routes, both layouts,
+`middleware.ts`, and the hook that mints the bearer token for every API call.
+
+**Replacing it touches:** configuration for the JWKS URL and issuer; a
+rewrite of the webhook verifier and the user-created handler; a data
+migration for the identity column in three tables; the erasure worker; the
+unsubscribe token scheme, with live links already out; and the frontend auth
+surface. This is bounded and well-marked, and it is not a configuration
+change.
+
+### Paddle, and merchant of record
+
+An invariant for a reason that is not primarily technical.
+
+Paddle is the **merchant of record**: legally the seller. EU VAT
+registration, rate determination, invoicing and filing are theirs. Replacing
+Paddle with a payment processor makes *you* the merchant of record, and that
+obligation moves to you. The
+[reasoning, including where Stripe genuinely wins](/production/payments-provider),
+is published in full.
+
+The code coupling sits on top of that. The `Subscription` model mirrors
+`paddle_subscription_id`, `paddle_customer_id` and `paddle_price_id`, and
+its status vocabulary is Paddle's wire vocabulary — including the American
+spelling `canceled`, with a warning in the model that British `cancelled`
+would silently never match. Those status strings are then **baked into SQL
+index predicates**: the partial unique index that enforces "at most one
+active subscription per user" is `WHERE status IN ('trialing', 'active')`.
+A different status vocabulary does not error; the index simply stops
+matching, and stops enforcing.
+
+Around the model: seven distinct webhook handlers rather than one upsert
+([why](/production/subscription-lifecycle)), an HMAC-signed checkout
+passthrough ([why](/production/checkout-integrity)), a three-strategy
+fallback for resolving which user a webhook belongs to, a price-ID
+resolution module, tier configuration, and two scheduled workers.
+
+And the shape matters as much as the size: **subscription state comes from
+Paddle**. The local table is a mirror, not a source of truth. A replacement
+has to supply the same event stream, or the lifecycle logic has nothing to
+mirror.
+
+**Replacing it touches:** the model and its index predicates, the webhook
+layer, checkout signing, tier and price configuration, two workers, the
+billing pages — and your tax position.
+
+### The credit ledger
+
+Every credit movement is one INSERT into an append-only table; the balance
+is a `SUM`. Two mechanisms hold it together: `UNIQUE (job_id, kind)` makes
+one logical operation idempotent, and the row lock makes check-then-insert
+atomic. The [full reasoning](/production/credits) and its failure modes are
+published, along with [the test](/receipts/ledger-concurrency).
+
+**Worth separating:** *whether you meter at all* is your choice. A product
+billing a flat subscription simply never spends from the ledger. What is not
+a choice is replacing the ledger with a `credits_remaining` integer and
+keeping the guarantees — that column is the exact design this one exists to
+avoid.
+
+### Repository-mediated ownership
+
+`AsyncBaseRepository` exposes `get`, `list`, `add` and `delete` — and
+deliberately **no ownership-aware read**. Each user-owned resource declares
+`get_for_user` / `list_for_user` on its own repository, so that resource's
+ownership filter lives in exactly one place, in SQL. Five repositories ship
+with the factory; the scaffold generates one per new resource.
+
+A router reaching a row through `repo.get(...)` or `session.get(Model, id)`
+has gone around it, which is why that pattern is treated as an IDOR red
+flag. See [Ownership and access](/production/ownership-and-access) and the
+[scaffolded example](/receipts/example-resource), whose generated test suite
+carries the IDOR regression test.
+
+The base class is thin on purpose, and worth knowing before you rely on it:
+no `commit` (transaction control belongs to the caller), no `update`, no
+soft-delete filtering — `list()` returns deleted rows and each caller
+filters `deleted_at` itself.
+
+**Replacing it touches:** every read path, the scaffold templates, and the
+meaning of the generated tests. The IDOR test is written against the
+repository contract; re-decide where the filter lives and it stops proving
+what it currently proves.
+
+### Account lifecycle and erasure
+
+Soft delete, a grace window, then a worker that hard-deletes and removes the
+identity at the provider. See
+[Account lifecycle and erasure](/production/account-lifecycle).
+
+**Replacing it touches:** Article 17 coverage, and the auth row above — the
+two are the same code path.
+
+### The `_domain/` boundary
+
+Nine reserved directories where your code lives, so an upstream release
+merge has nothing of yours to collide with. This one is not so much
+replaceable as *the thing you would be giving up*: abandon the convention
+and every update becomes a manual reconciliation.
+
+Its guarantee is also narrower than the convenient phrasing, and the
+[extension boundary page](/extending/domain-boundary) states exactly where —
+worth reading before you rely on it, alongside
+[Taking an update](/extending/taking-an-update).
+
+### FastAPI + async SQLAlchemy 2.0
+
+Eighty-seven backend modules, async throughout, with `Annotated` dependency
+injection as the auth contract: `CurrentUserDep`, `AdminDep`, `DBDep`.
+Every router, every repository and every test assumes it.
+
+**Replacing it touches:** all of it. This is a rewrite, and it is the row
+where "replaceable" stops being a useful word.
+
+---
+
+## Opinionated defaults
+
+### Celery + Redis
+
+Eight task modules and an eight-entry beat schedule.
+
+Two things make this heavier than it looks:
+
+- **Redis is not only the broker.** It also backs the LLM response cache,
+  the per-tier rate limits, and a boot-time health check. Replacing Celery
+  does not remove Redis. Two of those uses degrade *silently*: the cache
+  falls back to no-cache on a Redis outage, and the rate limiter falls back
+  to in-memory storage when no Redis URL is set — which makes the limit
+  per-process rather than shared, multiplying the effective allowance by
+  your worker count with nothing logged.
+- **The scheduled tasks are correctness machinery, not conveniences.** The
+  reconciler refunds spends whose work never completed, every sixty seconds;
+  subscription expiry downgrades lapsed plans hourly; account deletion is
+  the erasure path. Whatever replaces Celery has to run them on a schedule
+  with at-least-once semantics — and keep the JSON-only serializer, because
+  pickle is a remote code execution vector. See
+  [Background work](/production/async-work).
+
+**Replacing it touches:** every task module, the beat schedule, the
+serializer decision, and the retry semantics the reconciler assumes.
+
+### Next.js App Router
+
+Ninety-one frontend modules: App Router, server components by default
+(roughly two thirds of them), `next-intl` locale-prefixed routing across
+eleven locales, route groups, and middleware.
+
+The useful distinction is *which* frontend you mean.
+
+- **Replacing the shipped frontend entirely** — a native mobile app, a
+  different framework — touches the backend not at all. The boundary is a
+  bearer JWT over HTTP, documented in the
+  [boundary contracts table](/architecture#boundary-contracts). This is the
+  split working as intended.
+- **Replacing Next.js while keeping the shipped UI** is a rewrite of those
+  ninety-one modules. The auth gate, i18n routing and payment-script loading
+  all sit on Next middleware and App Router primitives.
+  [Server components by default](/production/frontend-model) explains what
+  that buys and what you do not get.
+
+`middleware.ts` is the most Next-coupled file in the tree, and its own
+comments document two ways it fails quietly: a public path missing from the
+allowlist serves crawlers a login screen, and a machine endpoint pulled
+through locale negotiation 404s instead of erroring. Both have regression
+tests, which is the appropriate response to a failure mode that does not
+announce itself.
+
+### Coding-agent context
+
+Three files: `CLAUDE.md`, and two short pointers that instruct an agent to
+read it. Delete them, rewrite them, or ignore them — nothing in the product
+depends on their contents.
+
+This row is the honest counterweight to the rest of the page. It is
+genuinely cheap to change, and saying so is what should make the "invasive"
+verdicts above worth believing. All three are published in full:
+[what an agent is handed](/agents/repository-context),
+[AGENTS.md](/agents/agents-md), [the Cursor rule](/agents/cursor-rule).
+
+---
+
+## Isolated integrations
+
+### Resend
+
+The send path is one module. There is no Resend SDK — direct HTTP to one
+endpoint, and that URL appears in exactly one file. Everything else in the
+product calls `send_transactional` or `send_marketing`.
+
+What sits *above* the wrapper is provider-agnostic and stays: the HMAC
+unsubscribe token ([why that endpoint is public](/production/email-consent)),
+the templates, and the broadcast dispatcher.
+
+One thing to know before you change it: **the marketing-consent gate lives
+inside the wrapper.** Any send path added that bypasses the module bypasses
+the consent check with it.
+
+**Replacing it touches:** one module's HTTP calls and payload shape. This is
+the row where a provider swap is genuinely contained.
+
+### The LLM provider
+
+`LLMClient` is a real abstraction over Anthropic and OpenAI: one module owns
+both SDKs, an enum selects between them, the default comes from
+configuration, and call sites pass messages rather than provider-specific
+shapes. Errors are normalised, so callers catch one exception type instead
+of two. Clients are constructor-injectable, which is what makes it testable
+without network access.
+
+**Switching between the two implemented providers** is a configuration
+change. **Adding a third** means writing it inside that module — the
+abstraction exists, but it is not a plugin system, and nothing discovers a
+provider nobody has implemented. The module also documents what it does not
+do: there is no automatic failover, so a 5xx from your primary provider is
+an error, not a silent switch.
+
+---
+
+## What this adds up to
+
+Eight of these are load-bearing. That is not a defect; it is what an
+opinionated foundation *is*. The ledger's guarantees, the ownership model
+and the webhook semantics are worth having precisely because they are
+assumed everywhere rather than offered as options.
+
+So the question worth asking before you buy is not "how much of this can I
+change?" — it is **"are these the decisions I would have made?"** If the
+answer is yes for the invariants, the defaults are negotiable and the
+integrations are contained. If the answer is no for even one invariant, this
+foundation will fight you, and it is much cheaper to learn that from this
+page than from a quarter of work.

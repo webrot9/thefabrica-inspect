@@ -37,25 +37,60 @@ const metas = files.filter((f) => f.endsWith("_meta.js"));
 if (pages.length === 0) fail.push("content/ holds no generated page at all.");
 
 // --- one export, not a mixture -------------------------------------------
+//
+// Read the frontmatter, not the prose. The page states its provenance in a
+// sentence for the reader AND in two fields for a check, and a check that
+// parsed the sentence would break the next time the sentence improved.
 const commits = new Map();
+const versions = new Map();
+
+function frontmatter(text) {
+  if (!text.startsWith("---\n")) return null;
+  const end = text.indexOf("\n---\n", 4);
+  if (end === -1) return null;
+  const fields = {};
+  for (const line of text.slice(4, end).split("\n")) {
+    const at = line.indexOf(":");
+    if (at === -1) continue;
+    fields[line.slice(0, at).trim()] = line.slice(at + 1).trim().replace(/^"|"$/g, "");
+  }
+  return fields;
+}
+
 for (const file of pages) {
   const text = readFileSync(file, "utf8");
   if (!text.includes("GENERATED FILE — DO NOT EDIT")) {
     fail.push(`${file}: no generated-file banner.`);
   }
-  const m = text.match(/Extracted from The Fabrica at `[^`]+` \(`([0-9a-f]{12})`\)/);
-  if (!m) {
-    fail.push(`${file}: does not say which commit it came from.`);
+  if (!text.includes("**Provenance.**")) {
+    fail.push(`${file}: no provenance footer.`);
+  }
+  const meta = frontmatter(text);
+  const sha = meta?.fabrica_documentation_source;
+  if (!sha || !/^[0-9a-f]{40}$/.test(sha)) {
+    fail.push(`${file}: no fabrica_documentation_source in its frontmatter.`);
     continue;
   }
-  if (!commits.has(m[1])) commits.set(m[1], []);
-  commits.get(m[1]).push(file);
+  if (!commits.has(sha)) commits.set(sha, []);
+  commits.get(sha).push(file);
+
+  const version = meta.fabrica_product_version ?? "(none claimed)";
+  if (!versions.has(version)) versions.set(version, []);
+  versions.get(version).push(file);
 }
+
 if (commits.size > 1) {
   fail.push(
     `content/ mixes ${commits.size} exports: ` +
-      [...commits].map(([sha, f]) => `${sha} (${f.length} pages)`).join(", ") +
+      [...commits].map(([sha, f]) => `${sha.slice(0, 12)} (${f.length} pages)`).join(", ") +
       ". Re-export the whole tree from one ref.",
+  );
+}
+if (versions.size > 1) {
+  fail.push(
+    `content/ claims ${versions.size} different product versions: ` +
+      [...versions].map(([v, f]) => `${v} (${f.length} pages)`).join(", ") +
+      ". Every page in one export describes one release.",
   );
 }
 
@@ -110,7 +145,10 @@ if (fail.length) {
   for (const line of fail) console.error(`check-generated: ${line}`);
   process.exit(1);
 }
+const [sha] = [...commits.keys()];
+const [version] = [...versions.keys()];
 console.log(
-  `check-generated: ${pages.length} generated pages, all from ${[...commits.keys()][0]}; ` +
-    `${handWritten.length} hand-written; every page reachable.`,
+  `check-generated: ${pages.length} generated pages, all from ${sha.slice(0, 12)} ` +
+    `and all describing ${version}; ${handWritten.length} hand-written; ` +
+    `every page reachable.`,
 );

@@ -24,6 +24,10 @@ App, no submodule, no workflow. The reviewable diff *is* the control.
 ## What can be edited here
 
 - `content/index.mdx` — the front page.
+- `content/extending/opinionated-and-replaceable.mdx` — an evaluation page.
+  Every product claim on it must trace to current source or to a generated
+  page on this site. Do not soften a verdict without re-reading the code
+  that produced it.
 - `content/receipts/example-resource.mdx` — inlines the files in
   `examples/owned-resource/`. Change the `.py` file and re-inline it;
   `npm run check` fails if the two disagree.
@@ -33,8 +37,9 @@ App, no submodule, no workflow. The reviewable diff *is* the control.
 - The site itself: `app/`, `next.config.mjs`, `mdx-components.js`,
   `scripts/`, and this file.
 
-These three pages are hand-written because no marked region could carry
-them — code and test output are not prose. They are still declared in the
+These four pages are hand-written because no marked region could carry
+them — code and test output are not prose, and an evaluation *across* the
+corpus is not something any one document can say about itself. They are still declared in the
 publication allowlist, so the generated sidebar lists them rather than the
 theme appending them wherever it likes.
 

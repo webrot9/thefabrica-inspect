@@ -1,19 +1,18 @@
 ---
 title: "What agent-driven work is bad at"
 description: "The failure modes, in the order you meet them."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # What agent-driven work is bad at
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/working-with-ai-agents.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 The Fabrica is an ordinary Python + TypeScript codebase. You can work
 in it the way you work in any repository. This guide is for people who
@@ -77,3 +76,11 @@ before you need it.
 And what you won't: how async Python works, why React server
 components exist, how JWT verification is implemented. That is a fine
 trade as long as you know you are making it.
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `docs/working-with-ai-agents.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

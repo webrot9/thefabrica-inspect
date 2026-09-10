@@ -1,19 +1,18 @@
 ---
 title: "Threat model"
 description: "OWASP API Top 10 and the GDPR-relevant threats, with residual risk stated."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # Threat model
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/security/threat-model.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 This document maps the OWASP API Top 10 + GDPR-relevant threats against
 the factory's shipped mitigations. Use it as the substrate for buyer-
@@ -256,3 +255,11 @@ These are **not** mitigated by the factory; buyers must address:
 - Webhook idempotency: `backend/src/models/processed_webhook_event.py`
 - Naming convention test: `backend/tests/test_db_naming_convention.py` (constraint/index naming only — nothing currently asserts FK cascade discipline; the scaffold template encodes it and code review is the control)
 - IDOR regression: `bin/templates/resource-scaffold/test.py.tmpl`
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `docs/security/threat-model.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

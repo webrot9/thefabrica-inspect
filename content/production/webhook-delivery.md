@@ -1,19 +1,18 @@
 ---
 title: "Webhook delivery is idempotent by construction"
 description: "At-least-once delivery, and the two-table pattern that absorbs it."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # Webhook delivery is idempotent by construction
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/recipes/why-webhook-idempotency.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 Every webhook the factory receives is idempotent: replay the same
 event 10 times → exactly one side effect. The two-table pattern
@@ -183,3 +182,11 @@ new `provider` enum value.
 - Paddle handler: `backend/src/api/routers/billing.py:paddle_webhook`
 - Clerk handler: `backend/src/api/routers/account.py:clerk_webhook`
 - Replay protection: `backend/src/services/paddle.py:verify_paddle_signature`
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `docs/recipes/why-webhook-idempotency.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

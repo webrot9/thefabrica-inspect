@@ -1,19 +1,18 @@
 ---
 title: "GDPR coverage map"
 description: "Article by article: what the code enforces, what a document carries, what is yours."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # GDPR coverage map
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/recipes/gdpr-compliance-bundle.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 ## What a questionnaire actually asks for
 
@@ -71,3 +70,11 @@ Be explicit with customers about what's NOT shipped:
 - **Cookie consent in non-EU jurisdictions** (California CPRA,
   Brazil LGPD, etc.): the 3-tier banner is GDPR-shaped. Other
   regions may need separate flows.
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `docs/recipes/gdpr-compliance-bundle.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

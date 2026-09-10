@@ -1,19 +1,18 @@
 ---
 title: "One endpoint per screen"
 description: "A fat dashboard endpoint against a request per card."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # One endpoint per screen
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/recipes/single-call-metrics-overview.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 `GET /api/v1/admin/metrics/overview` returns every number the admin
 dashboard renders — revenue, mailing health, DAU/WAU/MAU, acquisition,
@@ -107,3 +106,11 @@ The factory's metrics overview is bundled because all of them are
 - Helpers: `backend/src/api/routers/admin.py:_compute_*`
 - Schema: `backend/src/api/schemas/admin.py:AdminMetricsOverviewResponse`
 - Extension hook: `backend/src/config/project.py:user_provenance_prefixes`
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `docs/recipes/single-call-metrics-overview.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

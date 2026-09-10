@@ -1,19 +1,18 @@
 ---
 title: "The extension boundary"
 description: "Where buyer code lives, and precisely what that guarantees."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # The extension boundary
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/recipes/buyer-extension-model.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 Every buyer who clones the factory will pull updates from us as long
 as we keep shipping fixes. The hard problem is: how do they add their
@@ -167,3 +166,11 @@ infects the factory side via imports + makes the boundary blurry.
   `backend/src/prompts/_domain/README.md`,
   `backend/src/scrapers/_domain/README.md`,
   `frontend/src/components/_domain/README.md`.
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `docs/recipes/buyer-extension-model.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

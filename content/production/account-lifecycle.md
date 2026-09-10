@@ -1,19 +1,18 @@
 ---
 title: "Account lifecycle and erasure"
 description: "Soft delete with a grace window, and erasure as a real code path."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # Account lifecycle and erasure
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/recipes/soft-delete-vs-hard-delete.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 `DELETE /api/v1/account/me` doesn't actually delete the row. It sets
 `User.deleted_at = now()` and a daily Celery beat task runs the
@@ -96,3 +95,11 @@ cascades take, which on a fat account can be seconds).
 
 - Endpoint: `backend/src/api/routers/account.py:delete_my_account`
 - Worker: `backend/src/workers/account_deletion.py`
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `docs/recipes/soft-delete-vs-hard-delete.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

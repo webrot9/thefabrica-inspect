@@ -1,19 +1,18 @@
 ---
 title: "Credits are a ledger, not a counter"
 description: "Why metering is append-only, and the two mechanisms that keep it safe."
+fabrica_documentation_source: "1ee1bc9cb6619c19f57766731e7884b37f515dc9"
+fabrica_product_version: "thefabrica-v0.1.2"
 ---
 
 <!-- GENERATED FILE — DO NOT EDIT.
-     Produced from The Fabrica 1ee1bc9cb6619c19f57766731e7884b37f515dc9 by its
+     Produced from The Fabrica v0.1.2 by its
      documentation exporter, which lives in the private repository.
      Edit the source there instead. -->
 
 # Credits are a ledger, not a counter
 
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/recipes/why-credit-ledger.md`
-
-> **No release carries this yet.** It describes the documentation as it stands after `thefabrica-v0.1.2`, the most recent release.
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`, including post-release documentation corrections.
 
 ## The competitor pattern
 
@@ -113,3 +112,11 @@ One alternative approach uses the same append-only ledger with a `users.credits_
 - Idempotency key: `uq_credit_transactions_job_kind` in `backend/src/models/credit_transaction.py`
 - Reconciler: `backend/src/workers/credit_reconciler.py`
 - Race-condition test: `test_concurrent_deducts_do_not_double_spend` in `backend/tests/test_credit_ledger.py` — two spends, **different** `job_id`s, so the unique constraint cannot help and only the row lock can
+
+---
+
+**Provenance.** Documentation source: `1ee1bc9cb6619c19f57766731e7884b37f515dc9` (`main`).
+
+Extracted from `docs/recipes/why-credit-ledger.md`.
+
+That commit is later than the release these pages describe: it carries documentation corrections made after `thefabrica-v0.1.2` went out. Nothing that changes how the product behaves landed between the two — the exporter refuses to name a product version otherwise.

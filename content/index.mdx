@@ -31,13 +31,16 @@ excerpt nobody regenerates is a claim nobody rechecks.
 So each page says which commit it came from, at the top, every time:
 
 ```markdown
-> Extracted from The Fabrica at `main` (`1ee1bc9cb661`), from:
-> - `docs/recipes/why-credit-ledger.md`
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`,
+> including post-release documentation corrections.
 ```
 
-And when the documentation is ahead of the newest release — as it is
-today — the page says that too, rather than letting a reader assume they
-can download it.
+Product version and documentation source are separate questions, and the
+pages answer both. Documentation gets corrected after a release, so the
+Markdown here is newer than the release it describes — and naming that
+release is not taken on trust: the exporter refuses to print it unless git
+confirms the documentation commit descends from the release and that nothing
+changed the product's behaviour in between.
 
 ## What is not here
 
@@ -60,6 +63,12 @@ Read [Credits are a ledger, not a counter](/production/credits), then
 Both are concurrency problems that are cheap to get wrong and expensive to
 discover in production. Then check the claim:
 [the concurrency test and its output](/receipts/ledger-concurrency).
+
+**Which decisions am I inheriting?**
+[What is opinionated, and what is replaceable](/extending/opinionated-and-replaceable)
+goes through every major choice — database, auth, billing, queue, frontend —
+and says which are load-bearing, which are defaults, and what replacing each
+one actually touches.
 
 **Can I live in this codebase?**
 [Architecture](/architecture) for the shape of it,

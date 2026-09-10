@@ -9,5 +9,5 @@ export default {
   "agents": "Working with coding agents",
   "receipts": "Proof and receipts",
   "operating": "Operating it",
-  "releases": "Releases",
+  "releases": "Recent releases",
 };
