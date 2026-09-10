@@ -45,10 +45,6 @@ export default async function RootLayout({ children }) {
           // the edit that matters happens in a repository the reader
           // cannot see. CONTRIBUTING.md says where to go instead.
           editLink={null}
-          // No "last updated" either. Each page already states the commit
-          // it was extracted from; a second, different date — the date the
-          // export happened to be committed here — would contradict it.
-          lastUpdated={null}
           sidebar={{ defaultMenuCollapseLevel: 1 }}
         >
           {children}
