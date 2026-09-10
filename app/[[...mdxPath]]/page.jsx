@@ -6,7 +6,21 @@ export const generateStaticParams = generateStaticParamsFor("mdxPath");
 export async function generateMetadata(props) {
   const params = await props.params;
   const { metadata } = await importPage(params.mdxPath);
-  return metadata;
+  // One canonical URL per page.
+  //
+  // The optional catch-all serves `content/index.mdx` at both `/` and
+  // `/index`, byte for byte, and Next prerenders both. Without a canonical
+  // the front page is two indexable URLs with nothing saying which is the
+  // page — so `/index` points at `/`, and every other route points at
+  // itself. Resolved against `metadataBase` in the root layout.
+  const path = (params.mdxPath ?? []).join("/");
+  return {
+    ...metadata,
+    alternates: {
+      ...metadata.alternates,
+      canonical: path === "index" ? "/" : `/${path}`,
+    },
+  };
 }
 
 const Wrapper = getMDXComponents().wrapper;
