@@ -58,9 +58,9 @@ The rest of this page is the detail behind each row.
 
 Not "we use SQL". The database module says so outright: the schema uses
 JSONB, INET, `gen_random_uuid()` and partial indexes, and a buyer moving to
-another database has to replace them. Concretely, ten of the eleven models
-import from `sqlalchemy.dialects.postgresql`, and two correctness guarantees
-are Postgres semantics rather than SQL:
+another database has to replace them. The models import from
+`sqlalchemy.dialects.postgresql` directly, and two correctness guarantees are
+Postgres semantics rather than SQL:
 
 - `SELECT … FOR UPDATE` on the owning user row is what makes the credit
   balance check atomic — see
@@ -87,7 +87,7 @@ This row has two layers, and collapsing them would be misleading.
 **The assumption is architectural.** Identity lives outside the database.
 The provider's opaque user ID is the identity key, a webhook creates the
 local row, and `users.clerk_user_id` is documented as the source of truth.
-Two other tables — `workspaces` and `audit_logs` — store that ID as a
+Other tables — `workspaces` and `audit_logs` — store that ID as a
 **`String(64)`, deliberately not a foreign key**, because a `User` row may
 not exist yet when the row is written. Referential integrity there is
 enforced by the service layer, not the database.
@@ -100,7 +100,7 @@ That core is portable. What is not:
 1. **The identity ID is in your data and in already-sent email.**
    Unsubscribe links carry `HMAC-SHA256(secret, clerk_user_id)` and the ID
    itself. Change the ID format and every link already in a mailbox stops
-   verifying. Change it in the database and two tables of non-FK strings
+   verifying. Change it in the database and those non-FK string columns
    have to move with it, with nothing to fail loudly if a row is missed.
 2. **Account restore depends on a specific claim.** A soft-deleted account
    auto-restores only on evidence of a sign-in *after* deletion, read from
@@ -121,7 +121,7 @@ The frontend is committed too: the sign-in and sign-up routes, both layouts,
 
 **Replacing it touches:** configuration for the JWKS URL and issuer; a
 rewrite of the webhook verifier and the user-created handler; a data
-migration for the identity column in three tables; the erasure worker; the
+migration for the identity column wherever it is stored; the erasure worker; the
 unsubscribe token scheme, with live links already out; and the frontend auth
 surface. This is bounded and well-marked, and it is not a configuration
 change.
@@ -147,11 +147,11 @@ active subscription per user" is `WHERE status IN ('trialing', 'active')`.
 A different status vocabulary does not error; the index simply stops
 matching, and stops enforcing.
 
-Around the model: seven distinct webhook handlers rather than one upsert
+Around the model: distinct webhook handlers rather than one upsert
 ([why](/production/subscription-lifecycle)), an HMAC-signed checkout
-passthrough ([why](/production/checkout-integrity)), a three-strategy
-fallback for resolving which user a webhook belongs to, a price-ID
-resolution module, tier configuration, and two scheduled workers.
+passthrough ([why](/production/checkout-integrity)), a fallback chain for
+resolving which user a webhook belongs to, a price-ID resolution module,
+tier configuration, and scheduled workers.
 
 And the shape matters as much as the size: **subscription state comes from
 Paddle**. The local table is a mirror, not a source of truth. A replacement
@@ -159,7 +159,7 @@ has to supply the same event stream, or the lifecycle logic has nothing to
 mirror.
 
 **Replacing it touches:** the model and its index predicates, the webhook
-layer, checkout signing, tier and price configuration, two workers, the
+layer, checkout signing, tier and price configuration, the workers, the
 billing pages — and your tax position.
 
 ### The credit ledger
@@ -181,8 +181,9 @@ avoid.
 `AsyncBaseRepository` exposes `get`, `list`, `add` and `delete` — and
 deliberately **no ownership-aware read**. Each user-owned resource declares
 `get_for_user` / `list_for_user` on its own repository, so that resource's
-ownership filter lives in exactly one place, in SQL. Five repositories ship
-with the factory; the scaffold generates one per new resource.
+ownership filter lives in exactly one place, in SQL. The repositories that
+ship with the factory work this way, and the scaffold generates one per new
+resource.
 
 A router reaching a row through `repo.get(...)` or `session.get(Model, id)`
 has gone around it, which is why that pattern is treated as an IDOR red
@@ -211,21 +212,29 @@ two are the same code path.
 
 ### The `_domain/` boundary
 
-Nine reserved directories where your code lives, so an upstream release
-merge has nothing of yours to collide with. This one is not so much
-replaceable as *the thing you would be giving up*: abandon the convention
-and every update becomes a manual reconciliation.
+Buyer-owned files live at reserved `_domain/` paths. Upstream ships no
+buyer implementation file at those paths, so a file you create there has no
+upstream counterpart to be overwritten by — though upstream does own the
+placeholder and documentation files inside those directories, the `.gitkeep`
+and the `README.md`, and may revise them.
 
-Its guarantee is also narrower than the convenient phrasing, and the
-[extension boundary page](/extending/domain-boundary) states exactly where —
-worth reading before you rely on it, alongside
-[Taking an update](/extending/taking-an-update).
+That substantially reduces the surface an update can collide with. It does
+not make arbitrary updates conflict-free: the protection comes from where a
+file lives rather than from anything the merge does, so work outside those
+paths reconciles like any other change.
+
+This row is less "replaceable" than the rest — it is a convention rather
+than a component, and what you would be trading away is that reduced
+collision surface. The [extension boundary page](/extending/domain-boundary)
+states the guarantee precisely, including where it is narrower than the
+convenient phrasing, and [Taking an update](/extending/taking-an-update)
+covers what a release merge actually does.
 
 ### FastAPI + async SQLAlchemy 2.0
 
-Eighty-seven backend modules, async throughout, with `Annotated` dependency
-injection as the auth contract: `CurrentUserDep`, `AdminDep`, `DBDep`.
-Every router, every repository and every test assumes it.
+The backend is async throughout, with `Annotated` dependency injection as
+the auth contract: `CurrentUserDep`, `AdminDep`, `DBDep`. Every router, every
+repository and every test assumes it.
 
 **Replacing it touches:** all of it. This is a rewrite, and it is the row
 where "replaceable" stops being a useful word.
@@ -236,7 +245,7 @@ where "replaceable" stops being a useful word.
 
 ### Celery + Redis
 
-Eight task modules and an eight-entry beat schedule.
+The task modules and the beat schedule.
 
 Two things make this heavier than it looks:
 
@@ -260,9 +269,8 @@ serializer decision, and the retry semantics the reconciler assumes.
 
 ### Next.js App Router
 
-Ninety-one frontend modules: App Router, server components by default
-(roughly two thirds of them), `next-intl` locale-prefixed routing across
-eleven locales, route groups, and middleware.
+App Router, server components by default, `next-intl` locale-prefixed
+routing, route groups, and middleware.
 
 The useful distinction is *which* frontend you mean.
 
@@ -271,8 +279,8 @@ The useful distinction is *which* frontend you mean.
   bearer JWT over HTTP, documented in the
   [boundary contracts table](/architecture#boundary-contracts). This is the
   split working as intended.
-- **Replacing Next.js while keeping the shipped UI** is a rewrite of those
-  ninety-one modules. The auth gate, i18n routing and payment-script loading
+- **Replacing Next.js while keeping the shipped UI** is a rewrite of the
+  shipped frontend. The auth gate, i18n routing and payment-script loading
   all sit on Next middleware and App Router primitives.
   [Server components by default](/production/frontend-model) explains what
   that buys and what you do not get.
@@ -290,9 +298,9 @@ Three files: `CLAUDE.md`, and two short pointers that instruct an agent to
 read it. Rewrite them or ignore them — **nothing at runtime reads them**.
 
 One qualification, because this page is worth nothing if it rounds things
-off in its own favour: a test module does. Eleven tests assert that all
-three ship, that the two pointers stay pointers rather than becoming a
-second and third set of instructions, and that every path they cite exists.
+off in its own favour: a test module does. It asserts that all three ship,
+that the two pointers stay pointers rather than becoming a second and third
+set of instructions, and that every path they cite exists.
 Delete the files and the suite fails; you would delete or adapt that module
 with them. That is the whole cost.
 

@@ -5,9 +5,8 @@ description: "The six files a new user-owned resource arrives as, and the securi
 
 # A scaffolded resource, in full
 
-Every user-owned resource in The Fabrica starts as six files copied from a
-template set and substituted: model, migration, schema, repository, router,
-tests. There is no generator command — the templates are files you copy,
+A new user-owned resource starts as six files copied from a template set
+and substituted: model, migration, schema, repository, router, tests. There is no generator command — the templates are files you copy,
 which is deliberate. A generator is a second thing to maintain, and a buyer
 who reads the template once understands what they now own.
 
@@ -23,9 +22,11 @@ expected to harden afterwards.
 
 Start here. The ownership filter is one SQL `WHERE` clause in one place,
 and every read of this resource goes through it. `AsyncBaseRepository`
-deliberately exposes no ownership-aware read, so a router cannot reach a
-row by id without going past `get_for_user` — and a reviewer looking for
-an IDOR has one method to read rather than every endpoint.
+deliberately exposes no ownership-aware read, so the way to reach a row by
+id is `get_for_user` — a router that calls `repo.get(...)` or
+`session.get(Model, id)` has gone around the filter, which is the IDOR red
+flag reviewers look for. Either way, a reviewer has one method to read
+rather than every endpoint.
 
 ```python filename="repository.py"
 """Async repository for SavedSearch.
