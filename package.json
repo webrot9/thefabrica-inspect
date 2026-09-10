@@ -5,10 +5,13 @@
   "type": "module",
   "description": "The public documentation site for The Fabrica.",
   "scripts": {
+    "predev": "node scripts/build-public-assets.mjs",
     "dev": "next dev",
-    "build": "npm run check && next build",
+    "build": "npm run check && node scripts/build-public-assets.mjs && next build",
+    "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind",
     "start": "next start",
-    "check": "node scripts/check-examples.mjs && node scripts/check-generated.mjs"
+    "check": "node scripts/check-examples.mjs && node scripts/check-generated.mjs",
+    "indexnow": "node scripts/indexnow.mjs"
   },
   "dependencies": {
     "next": "15.5.25",
@@ -16,5 +19,8 @@
     "nextra-theme-docs": "4.6.0",
     "react": "19.1.1",
     "react-dom": "19.1.1"
+  },
+  "devDependencies": {
+    "pagefind": "^1.5.2"
   }
 }

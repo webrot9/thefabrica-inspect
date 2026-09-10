@@ -3,3 +3,12 @@ node_modules/
 out/
 .DS_Store
 *.tsbuildinfo
+
+# Generated into public/ by `npm run build`. A generated file committed to
+# the tree is a file that can be edited and then disagree with what it was
+# generated from — see scripts/build-public-assets.mjs. The IndexNow key
+# beside them is NOT generated and IS committed: it has to be served.
+/public/**/*.md
+/public/llms.txt
+/public/_pagefind/
+/lib/pages.json

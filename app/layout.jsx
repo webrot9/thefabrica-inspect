@@ -37,7 +37,15 @@ const footer = (
 export default async function RootLayout({ children }) {
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
-      <Head />
+      <Head>
+        {/* The curated map of this site for a machine reading it: what The
+            Fabrica is, then the pages grouped the way the sidebar groups
+            them. `describedby` is the honest relation — llms.txt describes
+            the site, it is not an alternate representation of any one
+            page, which is what `alternate` would claim. React hoists this
+            into <head> like any other link element. */}
+        <link rel="describedby" type="text/plain" href="/llms.txt" />
+      </Head>
       <body>
         <Layout
           navbar={navbar}
