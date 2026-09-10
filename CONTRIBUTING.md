@@ -26,8 +26,35 @@ pull request here.
   `npm run check` fails if the two disagree.
 - `content/receipts/ledger-concurrency.mdx` — a test transcript. If the test
   or its numbers change, paste real output. Do not update the prose alone.
-- The site itself: `app/`, `next.config.mjs`, `mdx-components.js`,
+- The site itself: `app/`, `lib/`, `next.config.mjs`, `mdx-components.js`,
   `scripts/`, and this file.
+
+## What is generated at build time
+
+`npm run build` writes four things before and after `next build`, none of
+which is committed:
+
+- a Markdown copy of every page at `<route>.md`, so a reader that wants the
+  words rather than the document can fetch them;
+- `llms.txt`, the curated map of the site for a machine reading it;
+- `lib/pages.json`, the page inventory the sitemap and the breadcrumbs read;
+- `public/_pagefind/`, the search index, built from the prerendered HTML.
+
+All four come from `lib/inventory.mjs`, which reads `content/` and the
+generated sidebar files. There is no second list of pages anywhere, and
+adding one is how a withdrawn page goes on being advertised.
+
+`public/8f4d…txt` is the exception beside them: it is the IndexNow key, it
+is not generated, and it is committed because it has to be served. IndexNow
+keys are public by design — the protocol validates a submission by fetching
+that file.
+
+After a deployment is live, `npm run indexnow` shows which canonical URLs
+have appeared, changed or gone since the last submission; `npm run indexnow
+-- --submit` sends exactly those and updates
+`scripts/indexnow-state.json`, which is then committed. It is a manual
+command on purpose: submitting a URL before the deployment that serves it is
+worse than submitting nothing.
 
 ## Before you push
 
