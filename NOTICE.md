@@ -21,11 +21,16 @@ separately, under the commercial terms published at
 <https://www.thefabrica.dev/>. Those terms — not this notice — govern
 what a licensee may do with the product.
 
-## About the code in this repository
+## About the material in this repository
 
-The examples are inspection renderings: real output from the product's
-scaffold, for a fictional resource, with the surrounding factory
-primitives omitted. They are published to be read, not executed, and
-they are not a redistributable subset of the product.
+Most of it is generated: extracted from the private product repository
+by a tool that reads regions marked for publication, and committed here
+as a reviewed diff. Every generated page names the commit it came from.
+That makes the pages checkable — it does not make them licensed.
+
+The code examples are inspection renderings: real output from the
+product's resource templates, for a fictional resource, with the
+surrounding factory primitives omitted. They are published to be read,
+not executed, and they are not a redistributable subset of the product.
 
 Where a value has been normalised for publication, the file says so.

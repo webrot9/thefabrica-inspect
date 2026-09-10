@@ -1,0 +1,45 @@
+# CI for the public documentation site.
+#
+# The whole point of this repository is that it builds and checks from its
+# own contents. There is no checkout of the private product repository, no
+# token that could reach one, and no step that fetches anything but this
+# tree and its npm dependencies. If a check here needs private material to
+# pass, the check is in the wrong repository.
+#
+# What runs:
+#   * the drift guards — the one hand-written page that inlines real code
+#     must match the files it inlines, and the generated tree must be one
+#     export rather than a mixture of several;
+#   * the production build, because a page that renders locally and fails
+#     to prerender is a page nobody can read.
+
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - name: npm ci
+        run: npm ci --no-audit --no-fund
+      - name: Drift guards
+        run: npm run check
+      - name: Production build (next build)
+        run: npm run build

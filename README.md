@@ -1,131 +1,85 @@
-# The Fabrica — Inspection Repository
+# The Fabrica — public documentation
 
-This repository is a curated, source-visible window into selected
-engineering decisions and generated examples from **The Fabrica**, a
-commercial FastAPI + Next.js SaaS foundation.
+This repository is the source of **the engineering documentation for
+[The Fabrica](https://www.thefabrica.dev/)**, a commercial FastAPI +
+Next.js SaaS foundation. It is also the site that serves it.
 
-It exists to answer one question before you spend anything:
+It exists to answer one question before anyone spends anything:
 
-> Is this codebase engineered well enough that I would trust it as the
-> foundation of my product?
+> Is this engineered well enough that I would trust it as the foundation
+> of my product?
 
-## What this is not
+## Most of this repository is generated
 
-- **Not the source repository.** The product lives in a private
-  repository that licensees are given access to.
-- **Not runnable.** Nothing here builds, installs or starts. The
-  examples import factory primitives that are deliberately absent.
-- **Not a free tier, community edition, or open-source release.** See
-  [`NOTICE.md`](NOTICE.md) — there is no open-source licence here, and
-  that omission is intentional rather than an oversight.
-- **Not a source dump.** It does not contain the billing
-  implementation, the credit-ledger implementation, the compliance
-  bundle, the setup CLI, the scaffold templates, or the private
-  recipes.
+Almost every page under `content/` is **extracted from the private product
+repository**, not written here. Passages are marked at the source, an
+allowlist names which files may be published and to what route, and a tool
+reads the marked regions out of a git ref and writes this tree. Publication
+is a diff a human reads before it becomes a commit.
 
-What it does contain is chosen so that the claims are **falsifiable**:
-enough real code and real reasoning to disagree with, rather than a
-feature list.
+The reason is drift. This repository used to carry hand-written public
+excerpts, and by the time they were retired one of them described the
+credit ledger more accurately than the private document did, while another
+claimed file counts that had not been true for months. An excerpt nobody
+regenerates is a claim nobody rechecks.
 
-## Built to work with coding agents
+Files that say `GENERATED FILE — DO NOT EDIT` mean it. Editing one here
+produces a change that the next export silently reverts. The source is in
+the private repository; the exporter is in the private storefront
+repository. Neither of them can write to this one, and nothing here can
+read either of them:
 
-A licensed repository ships the instruction file each coding agent
-already looks for: `CLAUDE.md` for Claude Code, `AGENTS.md` for Codex
-and other agents following that convention, `.cursor/rules/fabrica.mdc`
-for Cursor. The two short ones instruct the agent to read and follow
-`CLAUDE.md`, so there is one canonical set of instructions rather than
-three that drift.
+| Repository | Owns |
+|---|---|
+| `thefabrica` (private) | the documentation source and the `public:` markers |
+| `thefabrica-www` (private) | the exporter and the publication allowlist |
+| **this one** (public) | the generated tree, the site, and the pages no document can carry |
 
-That canonical file carries the architecture and where things live; the
-`_domain/` extension boundary; the production invariants that are
-expensive to get wrong — the append-only credit ledger, webhook
-idempotency, ownership filtering in the repository layer; the
-verification commands and the expectation that generating code is not
-finishing the task; and the procedure for taking an upstream update.
+There is no token, no GitHub App, no submodule and no workflow anywhere
+that moves content from private to public. A human runs the exporter and
+opens a pull request.
 
-The point is not that an agent generates the product for you. It is
-that your agent starts from explicit production context instead of
-rediscovering those decisions from a blank repository — which is where
-a plausible-looking diff quietly gets the ownership filter or the
-ledger wrong. The audience is still the developer doing the reviewing.
+## What is hand-written
 
-The mechanism is inspectable in [`agent-context/`](agent-context/).
+Two kinds of page, both of them evidence that no prose extract could
+carry, and both declared in the publication allowlist so the generated
+sidebar still lists everything:
 
-## Reading path
+- `content/index.mdx` — the front page.
+- `content/extending/opinionated-and-replaceable.mdx` — an evaluation page
+  that reads across the whole corpus and the source: which decisions are
+  load-bearing, which are defaults, and what replacing each one touches. No
+  single marked region could carry it, because it is *about* the set.
+- `content/receipts/example-resource.mdx` — the six files a scaffolded
+  resource arrives as, inlined from `examples/owned-resource/` and checked
+  against them on every build by `scripts/check-examples.mjs`.
+- `content/receipts/ledger-concurrency.mdx` — the concurrency test that
+  backs the credit-ledger claim, and its output.
 
-Five items, in this order. Each is meant to prove something specific.
+## What is not here
 
-### 1. [`examples/owned-resource/`](examples/owned-resource/)
+The setup and deployment procedures, the compliance document set, the
+scaffold templates, the operational how-tos and the troubleshooting
+catalogue. They are what a licence buys, and their absence is enforced by
+tests in the storefront repository rather than by intention: adding one to
+the publication allowlist fails that build.
 
-Six files — model, migration, schema, repository, router, tests — for a
-fictional `SavedSearch` resource, rendered from the private scaffold
-that generates every user-owned resource in the product.
+Nothing here is runnable as a product, and none of it is open source. See
+[`NOTICE.md`](NOTICE.md) — the absence of a `LICENSE` file is deliberate
+rather than an oversight.
 
-*What it proves:* that generated code arrives with its security
-properties already in place. Ownership is filtered in SQL in a single
-repository rather than re-checked per endpoint; a foreign row answers
-404 rather than 403; the foreign key cascades on user deletion; the
-`(user_id, created_at)` index exists because listing "my rows" is the
-query that will actually run; every state change writes an audit
-record; and the generated test suite includes the IDOR regression test
-that fails the moment someone drops the ownership filter.
+## Running the site
 
-Start with `repository.py`, then `test_resource.py`.
+```bash
+npm ci
+npm run build          # Next.js 15 + Nextra 4
+npm run check          # the drift guards, no network, no secrets
+npm run dev
+```
 
-### 2. [`extension-model/README.md`](extension-model/README.md)
-
-How buyer code and factory code are kept apart so that upstream updates
-remain takeable.
-
-*What it proves:* that the upgrade path was designed rather than hoped
-for — and that the boundary is described precisely, including where the
-guarantee is narrower than the convenient phrasing.
-
-### 3. [`decisions/`](decisions/)
-
-Two load-bearing decisions, written up with their failure modes and
-their costs: [why credits are a
-ledger](decisions/why-credit-ledger.md) rather than a counter, and [why
-webhook handling is idempotent by
-construction](decisions/why-webhook-idempotency.md).
-
-*What they prove:* that the concurrency and at-least-once-delivery
-problems were understood before they were hit, and that the trade-offs
-are stated rather than hidden.
-
-### 4. [`receipts/`](receipts/)
-
-[A concurrency test](receipts/credit-ledger-concurrency-test.md)
-described in enough detail to know what it would take to break it.
-
-*What it proves:* that the ledger claim is tested, not asserted.
-
-### 5. [`agent-context/`](agent-context/)
-
-The two pointer files in full, and labelled excerpts from the canonical
-`CLAUDE.md`, taken from release `thefabrica-v0.1.2`.
-
-*What it proves:* that the orientation above is a property of the
-repository rather than of a prompt someone remembered to paste.
-`AGENTS.md` and the Cursor rule are published whole — the only way to
-show that they instruct rather than mention, and that they stay
-pointers instead of becoming a second and third set of instructions.
-The `CLAUDE.md` excerpts show what the agent is actually handed on the
-five topics the claim rests on, with every cut marked and explained.
-
-Also here: [`TREE.md`](TREE.md), a deliberately incomplete architecture
-map, for judging whether the system is coherent as a whole.
-
-## An honest note on what you can verify
-
-Everything on these pages is a vendor describing their own work. The
-code samples are real and you can judge them directly. The test receipt
-and the architecture map are reports about a repository you cannot see
-yet, and they are worth what any such report is worth until you can
-read the source — which is what a licence gets you.
-
-The reasoning is offered in a form you can argue with. If a decision
-here looks wrong, it probably is worth asking about before buying.
+The build reads this repository and nothing else. It holds no credential,
+makes no authenticated request, and has no dependency on a private
+repository at build time or at request time.
 
 ---
 

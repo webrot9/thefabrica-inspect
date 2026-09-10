@@ -1,0 +1,95 @@
+---
+title: "Start here"
+description: "The engineering documentation for The Fabrica, published from the private repository rather than retyped from it."
+---
+
+# The Fabrica — engineering documentation
+
+This site is the reasoning behind **The Fabrica**, a production FastAPI +
+Next.js SaaS foundation: what was built, what was rejected, what it costs,
+and where the guarantees are narrower than the convenient phrasing.
+
+It exists to answer one question before you spend anything:
+
+> Is this engineered well enough that I would trust it as the foundation of
+> my product?
+
+## How these pages are produced
+
+Every page under a section heading is **extracted from the private
+repository**, not retyped from it. Passages are marked at the source, an
+allowlist names which files may be published and where, and a tool reads
+the marked regions out of a git ref and writes this tree. Publication is a
+diff a human reads.
+
+That matters for one reason: a hand-written public excerpt drifts. This
+repository used to carry three of them, and by the time they were retired
+one described the credit ledger more accurately than the private document
+did, and another claimed file counts that had not been true for months. An
+excerpt nobody regenerates is a claim nobody rechecks.
+
+So each page says which commit it came from, at the top, every time:
+
+```markdown
+> Applies to **The Fabrica v0.1.2**. Documentation source: `1ee1bc9cb661`,
+> including post-release documentation corrections.
+```
+
+Product version and documentation source are separate questions, and the
+pages answer both. Documentation gets corrected after a release, so the
+Markdown here is newer than the release it describes — and naming that
+release is not taken on trust: the exporter refuses to print it unless git
+confirms the documentation commit descends from the release and that nothing
+changed the product's behaviour in between.
+
+## What is not here
+
+The setup and deployment procedures, the compliance document set, the
+scaffold templates, the operational how-tos and the troubleshooting
+catalogue are not published. They are what a licence buys. Their absence
+is enforced by tests rather than by intention: adding one to the
+publication allowlist fails the build.
+
+Nothing here is runnable, and none of it is open source — see
+[`NOTICE.md`](https://github.com/webrot9/thefabrica-inspect/blob/main/NOTICE.md).
+
+## Where to start
+
+Three routes in, depending on what you are trying to decide.
+
+**Is the hard part done properly?**
+Read [Credits are a ledger, not a counter](/production/credits), then
+[Webhook delivery is idempotent by construction](/production/webhook-delivery).
+Both are concurrency problems that are cheap to get wrong and expensive to
+discover in production. Then check the claim:
+[the concurrency test and its output](/receipts/ledger-concurrency).
+
+**Which decisions am I inheriting?**
+[What is opinionated, and what is replaceable](/extending/opinionated-and-replaceable)
+goes through every major choice — database, auth, billing, queue, frontend —
+and says which are load-bearing, which are defaults, and what replacing each
+one actually touches.
+
+**Can I live in this codebase?**
+[Architecture](/architecture) for the shape of it,
+[the extension boundary](/extending/domain-boundary) for where your code
+goes and precisely what that protects, and
+[taking an update](/extending/taking-an-update) for what a release merge
+actually does to a repository shaped like this one.
+
+**Does it survive contact with reality?**
+[What executing our own guide broke](/receipts/executing-the-guide) and
+[two events, no delivery order](/receipts/paddle-delivery-order) are the
+defects found by running the thing rather than describing it.
+[Cost baseline](/operating/cost) is what the third-party stack costs and
+where this foundation does not help you.
+
+## An honest note on what you can verify
+
+This is a vendor describing their own work. The code samples are real and
+you can judge them directly. The test transcripts and the architecture
+descriptions are reports about a repository you cannot see yet, and they
+are worth what any such report is worth until you can read the source.
+
+The reasoning is offered in a form you can argue with. If a decision here
+looks wrong, it is worth asking about before buying.
