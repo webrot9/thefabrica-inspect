@@ -287,12 +287,19 @@ announce itself.
 ### Coding-agent context
 
 Three files: `CLAUDE.md`, and two short pointers that instruct an agent to
-read it. Delete them, rewrite them, or ignore them — nothing in the product
-depends on their contents.
+read it. Rewrite them or ignore them — **nothing at runtime reads them**.
 
-This row is the honest counterweight to the rest of the page. It is
-genuinely cheap to change, and saying so is what should make the "invasive"
-verdicts above worth believing. All three are published in full:
+One qualification, because this page is worth nothing if it rounds things
+off in its own favour: a test module does. Eleven tests assert that all
+three ship, that the two pointers stay pointers rather than becoming a
+second and third set of instructions, and that every path they cite exists.
+Delete the files and the suite fails; you would delete or adapt that module
+with them. That is the whole cost.
+
+This row is the honest counterweight to the rest of the page. It is the one
+genuinely cheap thing here, and saying so is what should make the
+"invasive" verdicts above worth believing. All three files are published in
+full:
 [what an agent is handed](/agents/repository-context),
 [AGENTS.md](/agents/agents-md), [the Cursor rule](/agents/cursor-rule).
 
