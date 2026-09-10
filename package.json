@@ -6,7 +6,7 @@
   "description": "The public documentation site for The Fabrica.",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run check && next build",
     "start": "next start",
     "check": "node scripts/check-examples.mjs && node scripts/check-generated.mjs"
   },

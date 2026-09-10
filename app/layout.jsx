@@ -4,6 +4,11 @@ import { getPageMap } from "nextra/page-map";
 import "nextra-theme-docs/style.css";
 
 export const metadata = {
+  // The production host, so canonical and social URLs resolve against the
+  // site rather than against Next's localhost fallback. It is the one piece
+  // of deployment configuration that has to live in the repository: Vercel
+  // knows the domain, the build output does not.
+  metadataBase: new URL("https://docs.thefabrica.dev"),
   title: {
     default: "The Fabrica — engineering documentation",
     template: "%s — The Fabrica",
